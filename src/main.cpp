@@ -1,6 +1,6 @@
-#include "lib.h"
-
 #include <iostream>
+
+#include <lib.h>
 
 int main(int, char **) {
 	std::cout << "Version: " << version() << std::endl;
