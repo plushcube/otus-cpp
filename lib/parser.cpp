@@ -2,6 +2,14 @@
 
 using namespace std;
 
+uint8_t get_byte(const string &octet) {
+  int value = stoi(octet);
+  if (value < 0 || value > 255) {
+    return 0;
+  }
+  return static_cast<uint8_t>(value);
+}
+
 ip4_t parse_ip4(const string &ip) {
   auto start = ip.begin();
   auto end = ip.end();
@@ -9,10 +17,10 @@ ip4_t parse_ip4(const string &ip) {
   while (start != end) {
     auto pos = find(start, end, '.');
     if (pos != end) {
-      result.push_back(static_cast<uint8_t>(stoi(string(start, pos))));
+      result.push_back(get_byte(string(start, pos)));
       start = pos + 1;
     } else {
-      result.push_back(static_cast<uint8_t>(stoi(string(start, end))));
+      result.push_back(get_byte(string(start, end)));
       break;
     }
   }

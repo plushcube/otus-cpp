@@ -29,6 +29,7 @@ int main(int, char **) {
 
   sort_rev(ip_pool);
   print_pool(ip_pool);
+
   print_pool(filter(ip_pool, [](auto ip4) {
     return get<0>(ip4) == 1;
   }));
