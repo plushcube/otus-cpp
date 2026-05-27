@@ -14,7 +14,7 @@ set(TASK_LIB "libtask03")
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} "lib/container.cpp")
+add_library(${TASK_LIB} "lib/empty.cpp")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
   "${PROJECT_BINARY_DIR}/version.h"
@@ -51,7 +51,10 @@ if (WITH_TESTS)
   FetchContent_MakeAvailable(googletest)
 
   set(TASK_TEST "test_container")
-  add_executable(${TASK_TEST} "tests/test_container.cpp")
+  add_executable(${TASK_TEST}
+    "tests/test_allocator.cpp"
+    "tests/test_container.cpp"
+  )
 
   target_link_libraries(${TASK_TEST}
     GTest::gtest_main

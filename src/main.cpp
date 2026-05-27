@@ -34,26 +34,26 @@ int main(int, char **) {
     std::cout << pair.first << " " << pair.second << std::endl;
   }
 
-  // std::cout << "Custom container:" << std::endl;
-  // PlushContainer<int> task3{};
-  // for (int i = 0; i < 10; ++i) {
-  //   task3[i] = factorial(i);
-  // }
-  // for (const auto &value : task3) {
-  //   std::cout << value << " ";
-  // }
-  // std::cout << std::endl;
-  //
-  // std::cout << "Custom container with custom allocator:" << std::endl;
-  // PlushContainer<int, PlushAllocator<int>> task4{};
-  // for (int i = 0; i < 10; ++i) {
-  //   task4[i] = factorial(i);
-  // }
-  // for (const auto &value : task4) {
-  //   std::cout << value << " ";
-  // }
-  // std::cout << std::endl;
-  //
+  std::cout << "Custom container:" << std::endl;
+  PlushContainer<int> task3{};
+  for (int i = 0; i < 10; ++i) {
+    task3.push_back(factorial(i));
+  }
+  for (const auto &value : task3) {
+    std::cout << value << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "Custom container with custom allocator:" << std::endl;
+  PlushContainer<int, PlushAllocator<int>> task4{};
+  for (int i = 0; i < 10; ++i) {
+    task4.push_back(factorial(i));
+  }
+  for (const auto &value : task4) {
+    std::cout << value << " ";
+  }
+  std::cout << std::endl;
+
   std::cout << "Done." << std::endl;
   return 0;
 }
