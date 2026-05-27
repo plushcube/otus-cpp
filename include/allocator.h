@@ -3,8 +3,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <new>
-
-#include <iostream>
+#include <vector>
 
 template <typename T, std::size_t PoolSize = 10> class PlushAllocator {
 public:
