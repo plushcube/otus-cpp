@@ -1,124 +1,143 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
 #include <new>
-#include <vector>
 
 template <typename T, std::size_t PoolSize = 10> class PlushAllocator {
 public:
   using value_type = T;
   using size_type = std::size_t;
+
+  using propagate_on_container_copy_assignment = std::true_type;
   using propagate_on_container_move_assignment = std::true_type;
+  using propagate_on_container_swap_assignment = std::true_type;
 
   template <typename U> struct rebind {
     using other = PlushAllocator<U, PoolSize>;
   };
 
-  PlushAllocator() : m_count(0), m_capacity(0), p_occupied(nullptr) {
-    expand_pool();
+  PlushAllocator() noexcept = default;
+  template <typename U> PlushAllocator(const PlushAllocator<U> &) noexcept {}
+  ~PlushAllocator() {
+    while (pool) {
+      Pool *next = pool->next_pool;
+      delete pool;
+      pool = next;
+    }
   }
 
-  template <typename U> PlushAllocator(const PlushAllocator<U> &) {}
-
-  T *allocate(size_type n) {
-    T *p = find_gap(n);
-    if (p) {
-      return p;
+  T *allocate(const size_type &n) {
+    if (pool == nullptr) {
+      pool = new Pool(n);
+    }
+    Pool *p = pool;
+    while (p->next_pool) {
+      p = p->next_pool;
     }
 
-    if (n > std::size_t(-1) / sizeof(T)) {
-      throw std::bad_alloc();
+    T *result = p->get_next_free(n);
+    if (result) {
+      return result;
+    } else {
+      p->next_pool = new Pool(n);
+      return p->next_pool->get_next_free(n);
     }
-
-    while (m_count + n > m_capacity) {
-      expand_pool();
-    }
-
-    p = &(m_pool[m_count / pool_size][m_count % pool_size]);
-    for (size_type i = 0; i < n; ++i) {
-      p_occupied[m_count + i] = true;
-    }
-    m_count += n;
-    return p;
   }
 
-  void deallocate(T *p, size_type n) {
-    for (size_type i = 0; i < m_count; ++i) {
-      if (&m_pool[i / pool_size][i % pool_size] != p) {
-        continue;
+  void deallocate(T *p, const size_type &) {
+    Pool *prev = nullptr;
+    Pool *curr = pool;
+    while (curr) {
+      if (curr->contains(p)) {
+        curr->free(p);
+        if (curr->empty()) {
+          if (prev) {
+            prev->next_pool = curr->next_pool;
+          } else {
+            pool = curr->next_pool;
+          }
+          delete curr;
+        }
+        break;
+      } else {
+        prev = curr;
+        curr = curr->next_pool;
       }
-      for (size_type k = i; k < i + n; ++k) {
-        p_occupied[k] = false;
-      }
-      break;
     }
   }
 
-  template <class U, class... Args> void construct(U *p, Args &&...args) {
-    new (p) U(std::forward<Args>(args)...);
-  }
+  template <class U, class... Args> void construct(U *p, Args &&...args) { new (p) U(std::forward<Args>(args)...); }
 
   template <typename U> void destroy(U *p) { p->~U(); }
 
 private:
-  static constexpr size_type pool_size = PoolSize;
+  class Pool {
+  public:
+    struct alignas(std::max(alignof(T), alignof(void *))) Node {
+      Node *next;
+      alignas(T) T data;
 
-  size_type m_count;
-  size_type m_capacity;
-  std::vector<T *> m_pool;
-  bool *p_occupied;
+      T *get_data() { return reinterpret_cast<T *>(data); }
+    };
 
-  T *find_gap(const size_type &n) {
-    size_type start = 0;
-    while (start < m_count) {
-      if (p_occupied[start]) {
-        ++start;
-      } else {
-        bool found = true;
-        size_type gap = 1;
-        for (; gap < n; ++gap) {
-          if (p_occupied[start + gap]) {
-            found = false;
-            break;
-          }
-        }
-        if (found) {
-          return &m_pool[start / pool_size][start % pool_size];
-        } else {
-          start += gap + 1;
-        }
+    Pool() = delete;
+    Pool(const size_type &n) : capacity(n) {
+      data_head = static_cast<Node *>(::operator new(n * sizeof(Node)));
+      if (!data_head) {
+        throw std::bad_alloc();
       }
+      for (size_t i = 0; i < n - 1; ++i) {
+        data_head[i].next = &data_head[i + 1];
+      }
+      data_head[n - 1].next = nullptr;
+      next_free = data_head;
     }
-    return nullptr;
-  }
+    ~Pool() { ::operator delete(static_cast<void *>(data_head)); }
 
-  void expand_pool() {
-    m_pool.push_back(make_pool(pool_size));
-    m_capacity += pool_size;
-    if (p_occupied) {
-      p_occupied = static_cast<bool *>(
-          std::realloc(p_occupied, m_capacity * sizeof(bool)));
-    } else {
-      p_occupied = static_cast<bool *>(std::malloc(m_capacity * sizeof(bool)));
+    bool contains(const T *const p) const noexcept {
+      const char *pool_start = reinterpret_cast<const char *>(data_head);
+      const char *pool_end = pool_start + capacity * sizeof(Node);
+      const char *ptr = reinterpret_cast<const char *>(p);
+      return ptr >= pool_start && ptr < pool_end;
     }
-  }
 
-  static T *make_pool(const size_type &size) {
-    T *pool = static_cast<T *>(std::malloc(size * sizeof(T)));
-    if (!pool) {
-      throw std::bad_alloc();
+    T *get_next_free(size_type n) noexcept {
+      if (count + n > capacity) {
+        return nullptr;
+      }
+      count += n;
+      T *result = &(next_free->data);
+      for (size_t i = 0; i < n; ++i) {
+        next_free = next_free->next;
+      }
+      return result;
     }
-    return pool;
-  }
+
+    void free(T *p) noexcept {
+      Node *node = reinterpret_cast<Node *>(p);
+      node->next = next_free;
+      next_free = node;
+      --count;
+    }
+
+    bool empty() const noexcept { return count == 0; }
+
+  private:
+    Node *data_head{};
+    Node *next_free{};
+    size_type count{};
+    size_type capacity{};
+    Pool *next_pool{};
+
+    friend class PlushAllocator;
+  };
+
+  Pool *pool{};
 };
 
 template <typename T, typename U, std::size_t S1, std::size_t S2>
 bool operator==(const PlushAllocator<T, S1> &, const PlushAllocator<U, S2> &) {
-  return S1 == S2; // аллокаторы равны только при одинаковом размере пула
-}
-
-template <typename T, typename U, std::size_t S1, std::size_t S2>
-bool operator!=(const PlushAllocator<T, S1> &, const PlushAllocator<U, S2> &) {
-  return S1 != S2;
+  return false;
 }
