@@ -21,7 +21,7 @@ configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
 )
 
 set_target_properties(${TASK_CLI} ${TASK_LIB} PROPERTIES
-  CXX_STANDARD 17
+  CXX_STANDARD 20
   CXX_STANDARD_REQUIRED ON
 )
 
