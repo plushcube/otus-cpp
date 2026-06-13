@@ -3,26 +3,25 @@ cmake_minimum_required(VERSION 3.12)
 set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
 set(PROJECT_VESRION "0.0.${PATCH_VERSION}")
 
-project("ip_filter" VERSION ${PROJECT_VESRION})
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+project("print_ip" VERSION ${PROJECT_VESRION})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.12)
 
-set(TASK_CLI "ip_filter")
-set(TASK_LIB "libfilter")
+set(TASK_CLI "print_ip")
+set(TASK_LIB "printer")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} "lib/filter.cpp" "lib/parser.cpp")
+add_library(${TASK_LIB} "lib/empty.cpp")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
   "${PROJECT_BINARY_DIR}/version.h"
-)
-
-set_target_properties(${TASK_CLI} ${TASK_LIB} PROPERTIES
-  CXX_STANDARD 17
-  CXX_STANDARD_REQUIRED ON
 )
 
 target_include_directories(${TASK_LIB}
@@ -50,8 +49,8 @@ if (WITH_TESTS)
   endif()
   FetchContent_MakeAvailable(googletest)
 
-  set(TASK_TEST "test_filter")
-  add_executable(${TASK_TEST} "tests/test_filter.cpp" "tests/test_parser.cpp")
+  set(TASK_TEST "test_lib")
+  add_executable(${TASK_TEST} "tests/test_lib.cpp")
 
   target_link_libraries(${TASK_TEST}
     GTest::gtest_main
