@@ -8,13 +8,13 @@ project("task_03" VERSION ${PROJECT_VESRION})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.12)
 
-set(TASK_CLI "task_03")
-set(TASK_LIB "libtask03")
+set(TASK_CLI "task_cli")
+set(TASK_LIB "task")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} "lib/empty.cpp")
+add_library(${TASK_LIB} INTERFACE)
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
   "${PROJECT_BINARY_DIR}/version.h"
@@ -26,11 +26,7 @@ set_target_properties(${TASK_CLI} ${TASK_LIB} PROPERTIES
 )
 
 target_include_directories(${TASK_LIB}
-  PUBLIC "include"
-)
-
-target_include_directories(${TASK_LIB}
-  PRIVATE "${CMAKE_BINARY_DIR}"
+  INTERFACE "include"
 )
 
 target_link_libraries(${TASK_CLI}
@@ -66,7 +62,7 @@ if (MSVC)
   target_compile_options(${TASK_CLI} PRIVATE
     /W4
   )
-  target_compile_options(${TASK_LIB} PRIVATE
+  target_compile_options(${TASK_LIB} INTERFACE
     /W4
   )
   if(WITH_TESTS)
@@ -78,7 +74,7 @@ else ()
   target_compile_options(${TASK_CLI} PRIVATE
     -Wall -Wextra -pedantic -Werror
   )
-  target_compile_options(${TASK_LIB} PRIVATE
+  target_compile_options(${TASK_LIB} INTERFACE 
     -Wall -Wextra -pedantic -Werror
   )
   if(WITH_TESTS)

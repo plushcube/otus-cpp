@@ -91,11 +91,9 @@ public:
 private:
   class Pool {
   public:
-    struct alignas(std::max(alignof(T), alignof(void *))) Node {
+    struct Node {
+      T data;
       Node *next;
-      alignas(T) T data;
-
-      T *get_data() { return reinterpret_cast<T *>(data); }
     };
 
     Pool() = delete;
@@ -132,10 +130,14 @@ private:
     }
 
     void free(T *p) noexcept {
-      Node *node = reinterpret_cast<Node *>(p);
-      node->next = next_free;
-      next_free = node;
-      --count;
+      for (size_type i = 0; i < capacity; ++i) {
+        if (&data_head[i].data == p) {
+          data_head[i].next = next_free;
+          next_free = &data_head[i];
+          --count;
+          break;
+        }
+      }
     }
 
     bool empty() const noexcept { return count == 0; }
