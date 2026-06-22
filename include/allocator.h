@@ -1,0 +1,165 @@
+#pragma once
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+
+template <typename T, std::size_t PoolSize = 10> class PlushAllocator {
+public:
+  using value_type = T;
+  using size_type = std::size_t;
+
+  using propagate_on_container_copy_assignment = std::false_type;
+  using propagate_on_container_move_assignment = std::true_type;
+  using propagate_on_container_swap = std::true_type;
+
+  template <typename U> struct rebind {
+    using other = PlushAllocator<U, PoolSize>;
+  };
+
+  PlushAllocator() noexcept = default;
+  PlushAllocator(const PlushAllocator &) = delete;
+  PlushAllocator &operator=(const PlushAllocator &) = delete;
+  PlushAllocator(PlushAllocator &&other) noexcept : pool(other.pool) { other.pool = nullptr; }
+  ~PlushAllocator() {
+    while (pool) {
+      Pool *next = pool->next_pool;
+      delete pool;
+      pool = next;
+    }
+  }
+
+  PlushAllocator &operator=(PlushAllocator &&other) noexcept {
+    if (this != &other) {
+      while (pool) {
+        Pool *next = pool->next_pool;
+        delete pool;
+        pool = next;
+      }
+      pool = other.pool;
+      other.pool = nullptr;
+    }
+    return *this;
+  }
+
+  T *allocate(const size_type &n) {
+    if (pool == nullptr) {
+      pool = new Pool(n);
+    }
+    Pool *p = pool;
+    while (p->next_pool) {
+      p = p->next_pool;
+    }
+
+    T *result = p->get_next_free(n);
+    if (result) {
+      return result;
+    } else {
+      p->next_pool = new Pool(n);
+      return p->next_pool->get_next_free(n);
+    }
+  }
+
+  void deallocate(T *p, const size_type &) {
+    Pool *prev = nullptr;
+    Pool *curr = pool;
+    while (curr) {
+      if (curr->contains(p)) {
+        curr->free(p);
+        if (curr->empty()) {
+          if (prev) {
+            prev->next_pool = curr->next_pool;
+          } else {
+            pool = curr->next_pool;
+          }
+          delete curr;
+        }
+        break;
+      } else {
+        prev = curr;
+        curr = curr->next_pool;
+      }
+    }
+  }
+
+  template <class U, class... Args> void construct(U *p, Args &&...args) { new (p) U(std::forward<Args>(args)...); }
+
+  template <typename U> void destroy(U *p) { p->~U(); }
+
+  bool equal(const PlushAllocator<T, PoolSize> &other) const { return pool == other.pool; }
+
+private:
+  class Pool {
+  public:
+    struct Node {
+      T data;
+      Node *next;
+    };
+
+    Pool() = delete;
+    Pool(const size_type &n) : capacity(n) {
+      data_head = static_cast<Node *>(::operator new(n * sizeof(Node)));
+      if (!data_head) {
+        throw std::bad_alloc();
+      }
+      for (size_t i = 0; i < n - 1; ++i) {
+        data_head[i].next = &data_head[i + 1];
+      }
+      data_head[n - 1].next = nullptr;
+      next_free = data_head;
+    }
+    ~Pool() { ::operator delete(static_cast<void *>(data_head)); }
+
+    bool contains(const T *const p) const noexcept {
+      const char *pool_start = reinterpret_cast<const char *>(data_head);
+      const char *pool_end = pool_start + capacity * sizeof(Node);
+      const char *ptr = reinterpret_cast<const char *>(p);
+      return ptr >= pool_start && ptr < pool_end;
+    }
+
+    T *get_next_free(size_type n) noexcept {
+      if (count + n > capacity) {
+        return nullptr;
+      }
+      count += n;
+      T *result = &(next_free->data);
+      for (size_t i = 0; i < n; ++i) {
+        next_free = next_free->next;
+      }
+      return result;
+    }
+
+    void free(T *p) noexcept {
+      for (size_type i = 0; i < capacity; ++i) {
+        if (&data_head[i].data == p) {
+          data_head[i].next = next_free;
+          next_free = &data_head[i];
+          --count;
+          break;
+        }
+      }
+    }
+
+    bool empty() const noexcept { return count == 0; }
+
+  private:
+    Node *data_head{};
+    Node *next_free{};
+    size_type count{};
+    size_type capacity{};
+    Pool *next_pool{};
+
+    friend class PlushAllocator;
+  };
+
+  Pool *pool{};
+};
+
+template <typename T, typename U, std::size_t S1, std::size_t S2>
+bool operator==(const PlushAllocator<T, S1> &, const PlushAllocator<U, S2> &) {
+  return false;
+}
+
+template <typename T, std::size_t S> bool operator==(const PlushAllocator<T, S> &lhs, const PlushAllocator<T, S> &rhs) {
+  return &lhs == &rhs;
+}
