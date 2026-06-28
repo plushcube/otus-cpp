@@ -1,6 +1,2 @@
 CompileFlags:
   Add: [-std=c++20, -Wall, -Wextra, -pedantic, -Werror]
-<<<<<<< HEAD
-
-=======
->>>>>>> da3668d (Основная часть задания №4)

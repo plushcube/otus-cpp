@@ -7,25 +7,36 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project("print_ip" VERSION ${PROJECT_VESRION})
+project("editor" VERSION ${PROJECT_VESRION})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.12)
 
-set(TASK_CLI "print_ip")
-set(TASK_LIB "printer")
+set(TASK_CLI "editor_app")
+set(TASK_LIB "editor")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} INTERFACE)
+add_library(${TASK_LIB} STATIC)
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
   "${PROJECT_BINARY_DIR}/version.h"
 )
 
 target_include_directories(${TASK_LIB}
-  INTERFACE "include"
+  PUBLIC "include"
+)
+
+target_sources(${TASK_LIB} PRIVATE
+  "lib/controllers/canvas.cpp"
+  "lib/controllers/editor.cpp"
+  "lib/models/image.cpp"
+  "lib/services/svg_service.cpp"
+  "lib/shapes/circle.cpp"
+  "lib/shapes/ellipse.cpp"
+  "lib/shapes/line.cpp"
+  "lib/shapes/rectangle.cpp"
 )
 
 target_link_libraries(${TASK_CLI}
@@ -37,7 +48,7 @@ if (WITH_TESTS)
 
   FetchContent_Declare(
     googletest
-    URL https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   if (MSVC)
@@ -70,7 +81,7 @@ else ()
   target_compile_options(${TASK_CLI} PRIVATE
     -Wall -Wextra -pedantic -Werror
   )
-  target_compile_options(${TASK_LIB} INTERFACE 
+  target_compile_options(${TASK_LIB} INTERFACE
     -Wall -Wextra -pedantic -Werror
   )
   if(WITH_TESTS)
