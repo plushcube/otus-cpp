@@ -4,5 +4,5 @@
 
 void Ellipse::draw() const {
   // TODO: draw a line.
-  std::cout << "ellipse!" << std::endl;
+  std::cout << "  draw ellipse!" << std::endl;
 }

@@ -5,11 +5,11 @@
 
 void Line::draw() const {
   // TODO: draw a line.
-  std::cout << "line!" << std::endl;
+  std::cout << "  draw line!" << std::endl;
 }
 
 Rect Line::get_bounds() const {
   float w = std::abs(m_end.x - m_start.x);
   float h = std::abs(m_end.y - m_start.y);
-  return { {}, { w, h } };
+  return {{}, {w, h}};
 }

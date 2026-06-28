@@ -13,7 +13,7 @@ public:
   void add_line(const Coord &start, const Coord &end) const noexcept;
   void add_rectangle(const Coord &start, const Coord &end, const float &r = 0.0) const noexcept;
 
-  uint64_t shape_id(const Coord &p) const;
+  uint64_t get_shape_id(const Coord &p) const;
   void del_shape(const uint64_t &id) const;
 
   void draw() const noexcept;

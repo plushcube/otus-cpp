@@ -11,7 +11,7 @@ class Editor {
 public:
   explicit Editor(std::shared_ptr<Exporter> e, std::shared_ptr<Importer> i) : p_exporter(e), p_importer(i) {}
 
-  void create_image();
+  void create_image(const Size &);
   void load_image(const std::string &);
   void save_image(const std::string &);
   void close_image();

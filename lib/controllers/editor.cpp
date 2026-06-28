@@ -1,13 +1,11 @@
 #include <controllers/editor.h>
 #include <iostream>
 
-void Editor::create_image() {
+void Editor::create_image(const Size &sz) {
   if (p_canvas) {
     close_image();
   }
-  p_canvas = std::make_unique<Canvas>(
-    std::make_unique<Image>()
-  );
+  p_canvas = std::make_unique<Canvas>(std::make_unique<Image>(sz));
   std::cout << "new image created" << std::endl;
 }
 
@@ -15,9 +13,7 @@ void Editor::load_image(const std::string &filepath) {
   if (p_canvas) {
     close_image();
   }
-  p_canvas = std::make_unique<Canvas>(
-    p_importer->import_from_file(filepath)
-  );
+  p_canvas = std::make_unique<Canvas>(p_importer->import_from_file(filepath));
   std::cout << "image loaded" << std::endl;
 }
 

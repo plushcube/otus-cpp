@@ -4,5 +4,5 @@
 
 void Rectangle::draw() const {
   // TODO: draw a line.
-  std::cout << "rectangle!" << std::endl;
+  std::cout << "  draw rectangle!" << std::endl;
 }
