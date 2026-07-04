@@ -37,6 +37,7 @@ target_sources(${TASK_LIB} PRIVATE
   "lib/shapes/ellipse.cpp"
   "lib/shapes/line.cpp"
   "lib/shapes/rectangle.cpp"
+  "lib/ui/editor_view.cpp"
 )
 
 target_link_libraries(${TASK_CLI}

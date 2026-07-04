@@ -3,6 +3,7 @@
 #include "object.h"
 
 #include <memory>
+#include <set>
 #include <vector>
 
 class Image {
@@ -16,7 +17,7 @@ public:
 
   uint64_t add_shape(std::unique_ptr<Shape>, const Coord &);
   void del_shape(const uint64_t &);
-  void draw() const noexcept;
+  void draw(const std::set<uint64_t> &) const noexcept;
 
 private:
   const Size m_size;

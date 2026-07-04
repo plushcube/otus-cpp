@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void Rectangle::draw() const {
+void Rectangle::draw(const bool &s) const {
   // TODO: draw a line.
-  std::cout << "  draw rectangle!" << std::endl;
+  std::cout << "  draw rectangle!" << (s ? " (selected)" : "") << std::endl;
 }

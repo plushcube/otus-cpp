@@ -18,9 +18,9 @@ void Image::del_shape(const uint64_t &id) {
   }
 }
 
-void Image::draw() const noexcept {
+void Image::draw(const std::set<uint64_t> &s) const noexcept {
   std::cout << "draw whole image:" << std::endl;
   for (const auto &o : m_objects) {
-    o.shape->draw();
+    o.shape->draw(s.contains(o.id));
   }
 }

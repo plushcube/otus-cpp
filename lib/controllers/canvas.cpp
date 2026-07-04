@@ -43,18 +43,27 @@ void Canvas::add_rectangle(const Coord &start, const Coord &end, const float &r)
   draw();
 }
 
-uint64_t Canvas::get_shape_id(const Coord &p) const {
+bool Canvas::toggle_selected(const Coord &p) noexcept {
   for (const auto &o : *p_image) {
     if (o.get_frame().point_inside(p)) {
-      return o.id;
+      if (m_selected.contains(o.id)) {
+        m_selected.erase(o.id);
+      } else {
+        m_selected.insert(o.id);
+      }
+      draw();
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
-void Canvas::del_shape(const uint64_t &id) const {
-  p_image->del_shape(id);
+void Canvas::del_selected() noexcept {
+  for (const auto &id : m_selected) {
+    p_image->del_shape(id);
+  }
+  m_selected.clear();
   draw();
 }
 
-void Canvas::draw() const noexcept { p_image->draw(); }
+void Canvas::draw() const noexcept { p_image->draw(m_selected); }

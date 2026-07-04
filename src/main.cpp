@@ -1,25 +1,27 @@
 #include <controllers/editor.h>
-#include <memory>
 #include <services/svg_service.h>
+#include <ui/editor_view.h>
+
+#include <memory>
 
 int main(int, char **) {
   std::shared_ptr<SVG_Service> svg = std::make_shared<SVG_Service>();
   std::unique_ptr<Editor> editor = std::make_unique<Editor>(svg, svg);
+  std::unique_ptr<EditorView> app_view = std::make_unique<EditorView>(std::move(editor));
 
-  editor->create_image({200.0f, 200.0f});
+  app_view->show();
+  app_view->send_action(UI_Action::new_image);
 
-  Canvas *canvas = editor->get_canvas();
-  canvas->add_rectangle({50.0f, 50.0f}, {150.0f, 150.0f});
-  canvas->add_circle({100.0f, 100.0f}, 50.0f);
-  canvas->add_ellipse({100.0f, 100.0f}, 25.0f, 50.0f);
-  canvas->add_line({50.0f, 50.0f}, {150.0f, 150.0f});
+  app_view->send_action(UI_Action::draw_rectangle);
+  app_view->send_action(UI_Action::draw_circle);
+  app_view->send_action(UI_Action::draw_ellipse);
+  app_view->send_action(UI_Action::draw_line);
 
-  auto id = canvas->get_shape_id({125.0f, 145.0f});
-  if (id > 0) {
-    canvas->del_shape(id);
-  }
+  app_view->send_mouse_event(UI_Mouse::left_btn_up, {125.0f, 145.0f});
+  app_view->send_action(UI_Action::remove);
 
-  editor->save_image("some_image.svg");
-  editor->close_image();
+  app_view->send_action(UI_Action::save_image);
+  app_view->send_action(UI_Action::quit);
+
   return 0;
 }

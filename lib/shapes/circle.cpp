@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void Circle::draw() const {
+void Circle::draw(const bool &s) const {
   // TODO: draw a line.
-  std::cout << "  draw circle!" << std::endl;
+  std::cout << "  draw circle!" << (s ? " (selected)" : "") << std::endl;
 }

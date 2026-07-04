@@ -15,10 +15,10 @@ public:
   void load_image(const std::string &);
   void save_image(const std::string &);
   void close_image();
-  Canvas *get_canvas() const { return p_canvas.get(); }
+  std::weak_ptr<Canvas> get_canvas() const { return p_canvas; }
 
 private:
-  std::unique_ptr<Canvas> p_canvas{nullptr};
+  std::shared_ptr<Canvas> p_canvas{nullptr};
   std::shared_ptr<Exporter> p_exporter;
   std::shared_ptr<Importer> p_importer;
 };

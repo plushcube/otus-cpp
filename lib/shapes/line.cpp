@@ -3,9 +3,9 @@
 #include <cstdlib>
 #include <iostream>
 
-void Line::draw() const {
+void Line::draw(const bool &s) const {
   // TODO: draw a line.
-  std::cout << "  draw line!" << std::endl;
+  std::cout << "  draw line!" << (s ? " (selected)" : "") << std::endl;
 }
 
 Rect Line::get_bounds() const {
