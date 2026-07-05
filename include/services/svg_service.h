@@ -3,7 +3,7 @@
 #include "exporter.h"
 #include "importer.h"
 
-class SVG_Service: public Exporter, public Importer {
+class SVG_Service : public Exporter, public Importer {
 public:
   SVG_Service() = default;
 

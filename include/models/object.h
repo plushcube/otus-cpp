@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "../shapes/shape.h"
-#include "rect.h"
+#include "shapes/shape.h"
 
 struct Object {
   uint64_t id;

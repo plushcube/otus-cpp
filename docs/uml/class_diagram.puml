@@ -1,0 +1,193 @@
+@startuml
+
+' ===== СЛОИ =====
+
+package Model #lightblue {
+
+  struct Coord {
+    + x: Float
+    + y: Float
+
+    + "-"(other: Coord): Coord
+    + "+"(other: Coord): Coord
+  }
+
+  struct Size {
+    + width: Float
+    + height: Float
+  }
+
+  struct Rect {
+    + origin: Coord
+    + size: Size
+
+    + get_center(): Coord
+    + point_inside(point: Coord): Bool
+  }
+
+  struct Object {
+    + id: uint64
+    + center: Coord
+    + shape: Shape
+
+    + get_frame(): Rect
+  }
+
+  class Image {
+    - size: Size
+
+    + add_shape(shape: Shape): uint64
+    + del_shape(id: uint64): void
+    + draw(selected: uint64[]): void
+  }
+
+  ' ===== ФИГУРЫ =====
+
+  interface Shape {
+    + draw(selected: Bool): void
+    + get_bounds(): Rect
+  }
+
+  class Circle {
+    - radius: Float
+  }
+
+  class Ellipse {
+    - radius_v: Float
+    - radius_h: Float
+  }
+
+  class Line {
+    - start: Coord
+    - end: Coord
+  }
+
+  class Rectangle {
+    - radius: Float
+    - size: Size
+  }
+
+  ' ===== ДЕЙСТВИЯ =====
+
+  enum UI_Action {
+    new_image
+    draw_rectangle
+    quit
+    ...
+  }
+
+  enum UI_Mouse {
+    btn_left_down
+    btn_left_up
+    ...
+  }
+}
+
+package View #lightgreen {
+
+  class EditorView {
+    + show(): void
+    + quit(): void
+
+    + send_action(action: UI_Action): void
+    + send_mouse_event(action: UI_Mouse, point: Coord): void
+
+    + show_new_image_dialog(): void
+    + show_load_image_dialog(): void
+    + show_save_image_dialog(): void
+  }
+
+  class ToolbarView {
+    + show(): void
+    + add_button(button: Button): void
+
+    + button_at(index: Int): Button
+    + item_count(): int
+  }
+
+  struct Button {
+    + type: UI_Action
+    + icon: String
+    + {field} action: () => void
+  }
+}
+
+package Controller #lightpink {
+
+  class Canvas {
+    - selected: uint64[]
+
+    + add_circle(center: Coord, radius: Float): void
+    + add_ellipse(center: Coord, radius_v: Float, radius_h: Float): void
+    + add_line(start: Coord, end: Coord): void
+    + add_rectangle(start: Coord, end: Coord, corner_radius: Float): void
+
+    + toggle_selected(at: Coord): bool
+    + del_selected(): void
+
+    + draw(): void
+    + raw_image(): Image
+  }
+
+  class Editor {
+    + create_image(size: Size): void
+    + load_image(filepath: String): void
+    + save_image(filepath: String): void
+    + close_image(): void
+
+    + get_canvas(): Canvas
+  }
+}
+
+package Service #lightyellow {
+
+  interface Exporter {
+    + export_to_file(image: Image, file: String): void
+  }
+
+  interface Importer {
+    + import_from_file(file: String): Image
+  }
+
+  class SVG_Service {}
+}
+
+' ===== СВЯЗИ =====
+
+' Композиция объектов
+Object *-- "1" Shape : shape
+Image *-- "*" Object : objects
+Canvas *-- "1" Image : image
+Editor *-- "1" Canvas : canvas
+
+EditorView *-- "1" Editor : editor
+EditorView *-- "1" ToolbarView : toolbar
+ToolbarView *-- "*" Button : owns >
+
+' Иерархия классов
+Circle ..|> Shape
+Ellipse ..|> Shape
+Line ..|> Shape
+Rectangle ..|> Shape
+
+' Зависимости (use)
+Canvas ..> Shape : <<use>>
+Canvas ..> Coord : <<use>>
+EditorView ..> UI_Action : <<use>>
+EditorView ..> UI_Mouse : <<use>>
+
+' Зависимости (DI)
+Editor --> "1" Exporter : exporter
+Editor --> "1" Importer : importer
+SVG_Service ..|> Exporter
+SVG_Service ..|> Importer
+SVG_Service --> Editor : <<provides Exporter, Importer>>
+
+' Пояснения
+note top of EditorView
+  View активно вызывает Editor,
+  что ближе к паттерну MVP
+  (Supervising Controller)
+end note
+
+@enduml

@@ -32,11 +32,11 @@ target_sources(${TASK_LIB} PRIVATE
   "lib/controllers/canvas.cpp"
   "lib/controllers/editor.cpp"
   "lib/models/image.cpp"
+  "lib/models/shapes/circle.cpp"
+  "lib/models/shapes/ellipse.cpp"
+  "lib/models/shapes/line.cpp"
+  "lib/models/shapes/rectangle.cpp"
   "lib/services/svg_service.cpp"
-  "lib/shapes/circle.cpp"
-  "lib/shapes/ellipse.cpp"
-  "lib/shapes/line.cpp"
-  "lib/shapes/rectangle.cpp"
   "lib/ui/editor_view.cpp"
 )
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../models/rect.h"
+#include "models/rect.h"
 
 class Shape {
 public:

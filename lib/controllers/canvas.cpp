@@ -1,9 +1,9 @@
 #include <controllers/canvas.h>
 
-#include <shapes/circle.h>
-#include <shapes/ellipse.h>
-#include <shapes/line.h>
-#include <shapes/rectangle.h>
+#include <models/shapes/circle.h>
+#include <models/shapes/ellipse.h>
+#include <models/shapes/line.h>
+#include <models/shapes/rectangle.h>
 
 void Canvas::add_circle(const Coord &center, const float &r) const noexcept {
   p_image->add_shape(std::make_unique<Circle>(r), center);
