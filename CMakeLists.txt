@@ -7,13 +7,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project("print_ip" VERSION ${PROJECT_VESRION})
+project("matrix" VERSION ${PROJECT_VESRION})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.12)
 
-set(TASK_CLI "print_ip")
-set(TASK_LIB "printer")
+set(TASK_CLI "matrix_cli")
+set(TASK_LIB "matrix")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
@@ -37,7 +37,7 @@ if (WITH_TESTS)
 
   FetchContent_Declare(
     googletest
-    URL https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   if (MSVC)
