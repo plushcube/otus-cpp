@@ -1,6 +1,5 @@
 #include <lib.h>
 
-#include <cassert>
 #include <iostream>
 
 int main(int, char **) {
