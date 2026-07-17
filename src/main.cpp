@@ -1,33 +1,28 @@
-#include <lib.h>
+#include <di/real_container.h>
+#include <parser.h>
 
 #include <iostream>
 
+void print_bulk(const std::vector<std::string> &v) {
+  std::cout << "bulk:";
+  for (const auto &s : v) {
+    std::cout << " " << s << ",";
+  }
+  std::cout << "\b" << std::endl;
+}
+
 int main(int, char **) {
-  Matrix<int, 0> matrix;
+  constexpr size_t n = 3;
 
-  for (int i = 0; i < 10; ++i) {
-    matrix[i][i] = i;
-    matrix[i][9 - i] = 9 - i;
+  auto di = std::make_shared<RealContainer<n>>();
+  Parser<n> p(di, print_bulk);
+  std::string s;
+
+  p.start();
+  while (std::getline(std::cin, s)) {
+    p.process(s);
   }
-
-  for (int i = 1; i < 9; ++i) {
-    for (int j = 1; j < 9; ++j) {
-      std::cout << matrix[i][j] << " ";
-    }
-    std::cout << std::endl;
-  }
-
-  std::cout << matrix.size() << std::endl;
-
-  for (const auto &v : matrix) {
-    for (const auto &i : v.first) {
-      std::cout << "[" << i << "]";
-    }
-    std::cout << " " << v.second << std::endl;
-  }
-
-  ((matrix[100][100] = 314) = 0) = 217;
-  // std::cout << matrix[100][100] << std::endl;
+  p.stop();
 
   return 0;
 }
