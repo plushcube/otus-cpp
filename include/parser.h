@@ -1,6 +1,5 @@
 #pragma once
 
-#include "commands/command.h"
 #include <cstddef>
 #include <functional>
 #include <string>
@@ -11,12 +10,20 @@
 #include <collector/provider.h>
 #include <collector/static_collector.h>
 #include <commands/cmd_builder.h>
+#include <commands/command.h>
 #include <di/container.h>
+#include <saver/saver.h>
 
 template <size_t N> class Parser {
 public:
-  explicit Parser(std::shared_ptr<DI_Container<N>> di, const std::function<void(const std::vector<std::string> &)> &f)
-      : m_callback(f), p_provider(di->collector_provider()) {}
+  explicit Parser(std::weak_ptr<DI_Container<N>> di, const std::function<void(const std::vector<std::string> &)> &f)
+      : m_callback(f) {
+    auto locked = di.lock();
+    if (!locked) {
+      throw std::runtime_error("DI container expired!");
+    }
+    p_provider = locked->collector_provider();
+  }
 
   void start() noexcept {}
 
@@ -26,10 +33,10 @@ public:
     switch (cmd.type) {
     case Command::Type::Command: {
       const auto collector = p_provider->collector();
+      collector->collect(cmd);
       if (collector->is_full()) {
         flush();
       }
-      collector->collect(cmd);
       break;
     }
 
@@ -59,12 +66,18 @@ public:
 
 private:
   const std::function<void(const std::vector<std::string> &)> m_callback;
-  const std::shared_ptr<CollectorProvider<N>> p_provider;
+  std::shared_ptr<CollectorProvider<N>> p_provider;
+  std::shared_ptr<Saver> p_saver;
 
   void flush() const noexcept {
     const auto collector = p_provider->collector();
     const Collector::Bulk bulk = collector->flush();
-    // TODO: save bulk to file
+
+    if (bulk.commands.empty()) {
+      return;
+    }
+
     m_callback(bulk.commands);
+    p_saver->save(bulk.start, bulk.commands);
   }
 };

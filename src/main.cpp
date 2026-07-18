@@ -6,9 +6,12 @@
 void print_bulk(const std::vector<std::string> &v) {
   std::cout << "bulk:";
   for (const auto &s : v) {
-    std::cout << " " << s << ",";
+    std::cout << " " << s;
+    if (s != v.back()) {
+      std::cout << ",";
+    }
   }
-  std::cout << "\b" << std::endl;
+  std::cout << std::endl;
 }
 
 int main(int, char **) {

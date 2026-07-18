@@ -10,8 +10,14 @@
 
 template <size_t N> class CollectorProvider {
 public:
-  explicit CollectorProvider(std::shared_ptr<DI_Container<N>> di)
-      : p_dynamic(di->dynamic_collector()), p_static(di->static_collector()) {}
+  explicit CollectorProvider(std::weak_ptr<DI_Container<N>> di) {
+    auto locked = di.lock();
+    if (!locked) {
+      throw std::runtime_error("DI container expired!");
+    }
+    p_dynamic = locked->dynamic_collector();
+    p_static = locked->static_collector();
+  }
 
   bool is_dynamic() const noexcept { return m_dynamic; }
   void set_dynamic(const bool v) noexcept { m_dynamic = v; }
