@@ -18,18 +18,14 @@ set(TASK_LIB "parser")
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} STATIC)
+add_library(${TASK_LIB} INTERFACE)
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
   "${PROJECT_BINARY_DIR}/version.h"
 )
 
 target_include_directories(${TASK_LIB}
-  PUBLIC "include"
-)
-
-target_sources(${TASK_LIB} PRIVATE
-  "lib/empty.cpp"
+  INTERFACE "include"
 )
 
 target_link_libraries(${TASK_CLI}
