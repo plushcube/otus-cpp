@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -12,18 +11,19 @@
 #include <commands/cmd_builder.h>
 #include <commands/command.h>
 #include <di/container.h>
-#include <saver/saver.h>
+#include <processor/processor.h>
 
-template <size_t N> class Parser {
+class Parser {
 public:
-  explicit Parser(std::weak_ptr<DI_Container<N>> di, const std::function<void(const std::vector<std::string> &)> &f)
-      : m_callback(f) {
+  explicit Parser(std::weak_ptr<DI_Container> di, const size_t &n) {
     auto locked = di.lock();
     if (!locked) {
       throw std::runtime_error("DI container expired!");
     }
-    p_provider = locked->collector_provider();
+    p_provider = locked->collector_provider(n);
   }
+
+  void add_processor(std::shared_ptr<Processor> p) { p_processors.push_back(p); }
 
   void start() noexcept {}
 
@@ -65,9 +65,8 @@ public:
   void stop() noexcept { flush(); }
 
 private:
-  const std::function<void(const std::vector<std::string> &)> m_callback;
-  std::shared_ptr<CollectorProvider<N>> p_provider;
-  std::shared_ptr<Saver> p_saver;
+  std::shared_ptr<CollectorProvider> p_provider;
+  std::vector<std::shared_ptr<Processor>> p_processors;
 
   void flush() const noexcept {
     const auto collector = p_provider->collector();
@@ -77,7 +76,8 @@ private:
       return;
     }
 
-    m_callback(bulk.commands);
-    p_saver->save(bulk.start, bulk.commands);
+    for (const auto &p : p_processors) {
+      p->process(bulk);
+    }
   }
 };

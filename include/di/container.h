@@ -5,15 +5,15 @@
 
 class Saver;
 class DynamicCollector;
-template <size_t N> class StaticCollector;
-template <size_t N> class CollectorProvider;
+class StaticCollector;
+class CollectorProvider;
 
-template <size_t N> class DI_Container {
+class DI_Container {
 public:
   virtual ~DI_Container() = default;
 
   virtual std::shared_ptr<Saver> saver() noexcept = 0;
   virtual std::shared_ptr<DynamicCollector> dynamic_collector() noexcept = 0;
-  virtual std::shared_ptr<StaticCollector<N>> static_collector() noexcept = 0;
-  virtual std::shared_ptr<CollectorProvider<N>> collector_provider() noexcept = 0;
+  virtual std::shared_ptr<StaticCollector> static_collector(const size_t &) noexcept = 0;
+  virtual std::shared_ptr<CollectorProvider> collector_provider(const size_t &) noexcept = 0;
 };

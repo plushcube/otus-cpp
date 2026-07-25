@@ -8,15 +8,15 @@
 
 #include <memory>
 
-template <size_t N> class CollectorProvider {
+class CollectorProvider {
 public:
-  explicit CollectorProvider(std::weak_ptr<DI_Container<N>> di) {
+  explicit CollectorProvider(std::weak_ptr<DI_Container> di, const size_t &n) {
     auto locked = di.lock();
     if (!locked) {
       throw std::runtime_error("DI container expired!");
     }
     p_dynamic = locked->dynamic_collector();
-    p_static = locked->static_collector();
+    p_static = locked->static_collector(n);
   }
 
   bool is_dynamic() const noexcept { return m_dynamic; }
@@ -33,5 +33,5 @@ public:
 private:
   bool m_dynamic{false};
   std::shared_ptr<DynamicCollector> p_dynamic;
-  std::shared_ptr<StaticCollector<N>> p_static;
+  std::shared_ptr<StaticCollector> p_static;
 };

@@ -7,19 +7,21 @@
 #include <string>
 #include <vector>
 
-class Saver {
+#include "processor.h"
+
+class Saver : public Processor {
 public:
   explicit Saver() = default;
 
-  void save(const time_t &t, const std::vector<std::string> &v) const {
-    const auto filename = make_filename(t);
-    const auto content = make_content(v);
+  void process(const Collector::Bulk &b) const noexcept override {
+    const auto filename = make_filename(b.start);
+    const auto content = make_content(b.commands);
     save_to_file(content, filename);
   }
 
 private:
   std::string make_content(const std::vector<std::string> &v) const noexcept {
-    std::string s;
+    std::string s = "bulk: ";
     for (const auto &c : v) {
       s += c;
       if (c != v.back()) {
@@ -30,12 +32,7 @@ private:
   }
 
   std::string make_filename(const time_t &t) const noexcept {
-    std::tm tm;
-    localtime_r(&t, &tm);
-    int h = tm.tm_hour;
-    int m = tm.tm_min;
-    int s = tm.tm_sec;
-    return std::format("{:02d}{:02d}{:02d}.log", h, m, s);
+    return std::format("bulk{}.log", static_cast<uint64_t>(t));
   }
 
   void save_to_file(const std::string &c, const std::string &f) const {

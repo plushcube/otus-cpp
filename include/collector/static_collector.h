@@ -1,36 +1,38 @@
 #pragma once
 
-#include <array>
+#include <vector>
 
 #include "collector.h"
 
-template <size_t N> class StaticCollector : public Collector {
+class StaticCollector : public Collector {
 public:
+  StaticCollector(const size_t &n) : m_max(n) {}
+
   bool collect(const Command &c) noexcept override {
     if (is_full() || c.type != Command::Type::Command) {
       return false;
     }
-    m_commands[m_size++] = c;
+    m_commands.push_back(c);
     return true;
   }
 
-  bool is_full() const noexcept override { return m_size == N; }
+  bool is_full() const noexcept override { return m_commands.size() == m_max; }
 
   Collector::Bulk flush() noexcept override {
-    if (m_size == 0) {
+    if (m_commands.empty()) {
       return {};
     }
 
     Bulk r;
     r.start = m_commands[0].timestamp;
-    for (size_t i = 0; i < m_size; ++i) {
-      r.commands.push_back(m_commands[i].command);
+    for (const auto &c : m_commands) {
+      r.commands.push_back(c.command);
     }
-    m_size = 0;
+    m_commands.clear();
     return r;
   }
 
 private:
-  std::array<Command, N> m_commands{};
-  size_t m_size{0};
+  std::vector<Command> m_commands{};
+  const size_t m_max;
 };
