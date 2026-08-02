@@ -7,13 +7,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project("matrix" VERSION ${PROJECT_VESRION})
+project("bulk" VERSION ${PROJECT_VESRION})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.12)
 
-set(TASK_CLI "matrix_cli")
-set(TASK_LIB "matrix")
+set(TASK_CLI "bulk")
+set(TASK_LIB "parser")
 
 option(WITH_TESTS "Whether to build tests" ON)
 

@@ -1,33 +1,36 @@
-#include <lib.h>
+#include <di/real_container.h>
+#include <processor/printer.h>
+#include <processor/saver.h>
+
+#include <parser.h>
 
 #include <iostream>
 
-int main(int, char **) {
-  Matrix<int, 0> matrix;
-
-  for (int i = 0; i < 10; ++i) {
-    matrix[i][i] = i;
-    matrix[i][9 - i] = 9 - i;
-  }
-
-  for (int i = 1; i < 9; ++i) {
-    for (int j = 1; j < 9; ++j) {
-      std::cout << matrix[i][j] << " ";
+int main(int argc, char **argv) {
+  size_t n = 3;
+  if (argc > 1) {
+    try {
+      n = std::max(1, static_cast<int>(std::stoull(argv[1])));
+    } catch (const std::invalid_argument &) {
+      std::cerr << "Error: argument '" << argv[1] << "' is not a number." << std::endl;
+      return 1;
+    } catch (const std::out_of_range &) {
+      std::cerr << "Error: number '" << argv[1] << "' is not valid." << std::endl;
+      return 1;
     }
-    std::cout << std::endl;
   }
 
-  std::cout << matrix.size() << std::endl;
+  auto di = std::make_shared<RealContainer>();
+  Parser p(di, n);
+  p.add_processor(std::make_shared<Printer>());
+  p.add_processor(std::make_shared<Saver>());
 
-  for (const auto &v : matrix) {
-    for (const auto &i : v.first) {
-      std::cout << "[" << i << "]";
-    }
-    std::cout << " " << v.second << std::endl;
+  std::string s;
+  p.start();
+  while (std::getline(std::cin, s)) {
+    p.process(s);
   }
-
-  ((matrix[100][100] = 314) = 0) = 217;
-  // std::cout << matrix[100][100] << std::endl;
+  p.stop();
 
   return 0;
 }
