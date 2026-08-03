@@ -27,9 +27,9 @@ expected<Config, string> Config::make_config(int ac, char **av) {
   visible.add_options()
     ("help", "produce help message")
     ("exclude,E", po::value<vector<string>>(), "exclude directories")
-    ("depth,D", po::value<int>(&d)->default_value(0), "search depth (default: 0)")
-    ("min-size", po::value<int>(&m)->default_value(1), "minimum file size (default: 1 byte)")
-    ("file-masks", po::value<vector<string>>(), "file matching masks")
+    ("depth,D", po::value<int>(&d)->default_value(0), "search depth")
+    ("min-size,F", po::value<int>(&m)->default_value(1), "minimum file size")
+    ("file-masks,M", po::value<vector<string>>(), "file matching masks")
     ("block-size,S", po::value<int>(&s), "block size")
     ("hash,H", po::value<string>(&h), "hash algorithm")
   ;

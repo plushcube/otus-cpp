@@ -20,13 +20,13 @@ set(TASK_LIB "dupfind")
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} STATIC "lib/config.cpp")
+add_library(${TASK_LIB} STATIC "lib/config.cpp" "lib/debug.cpp")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
 
 find_package(
-  Boost 1.90
+  Boost 1.80
   COMPONENTS filesystem program_options
   REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})

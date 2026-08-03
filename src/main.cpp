@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <config.h>
+#include <debug.h>
 
 using namespace std;
 
@@ -12,6 +13,7 @@ int main(int ac, char **av) {
   }
 
   const Config c = r.value();
+  print_config(c);
 
   return 0;
 }
