@@ -25,20 +25,21 @@ add_library(${TASK_LIB} STATIC "lib/config.cpp" "lib/debug.cpp")
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
 
-find_package(
-  Boost 1.80
-  COMPONENTS filesystem program_options
-  REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
+include(FetchContent)
+set(BOOST_INCLUDE_LIBRARIES "program_options")
+FetchContent_Declare(
+  boost
+  URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.tar.xz
+  URL_HASH
+    SHA256=aca59f889f0f32028ad88ba6764582b63c916ce5f77b31289ad19421a96c555f)
+FetchContent_MakeAvailable(boost)
 
 target_include_directories(${TASK_LIB} PUBLIC "include")
 
-target_link_libraries(${TASK_LIB} PUBLIC ${Boost_LIBRARIES})
+target_link_libraries(${TASK_LIB} PUBLIC Boost::program_options)
 target_link_libraries(${TASK_CLI} PRIVATE ${TASK_LIB})
 
 if(WITH_TESTS)
-  include(FetchContent)
-
   FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip)
