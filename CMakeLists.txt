@@ -20,7 +20,8 @@ set(TASK_LIB "dupfind")
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} STATIC "lib/config.cpp" "lib/debug.cpp")
+add_library(${TASK_LIB} STATIC "lib/config.cpp" "lib/debug.cpp"
+                               "lib/dupfind.cpp" "lib/filelist.cpp")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
@@ -36,7 +37,7 @@ FetchContent_MakeAvailable(boost)
 
 target_include_directories(${TASK_LIB} PUBLIC "include")
 
-target_link_libraries(${TASK_LIB} PUBLIC Boost::program_options)
+target_link_libraries(${TASK_LIB} PUBLIC Boost::program_options Boost::hash2)
 target_link_libraries(${TASK_CLI} PRIVATE ${TASK_LIB})
 
 if(WITH_TESTS)
