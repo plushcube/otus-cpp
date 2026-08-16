@@ -27,7 +27,7 @@ configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
 
 include(FetchContent)
-set(BOOST_INCLUDE_LIBRARIES "program_options")
+set(BOOST_INCLUDE_LIBRARIES "program_options" "hash2")
 FetchContent_Declare(
   boost
   URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.tar.xz

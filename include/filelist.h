@@ -10,6 +10,8 @@ class FileList {
 private:
   const Config m_config;
 
+  static bool matches_glob(const char *str, const char *pat);
+
   class Iterator {
   public:
     using iterator_category = std::input_iterator_tag;
@@ -18,11 +20,11 @@ private:
     using pointer = const std::filesystem::directory_entry *;
     using reference = const std::filesystem::directory_entry &;
 
-    Iterator();
+    Iterator() = default;
     Iterator(const Config &);
 
-    reference operator*() const;
-    pointer operator->() const;
+    reference operator*() const { return m_current_value; }
+    pointer operator->() const { return &m_current_value; }
 
     Iterator &operator++();
     Iterator operator++(int) {
@@ -40,8 +42,8 @@ private:
     std::stack<std::filesystem::recursive_directory_iterator> m_stack;
     std::filesystem::recursive_directory_iterator m_end_it;
     std::filesystem::directory_entry m_current_value;
-    const Config m_cfg;
-    bool m_is_end = false;
+    const Config *m_cfg = nullptr;
+    bool m_is_end = true;
   };
 
 public:
@@ -50,6 +52,6 @@ public:
 
   explicit FileList(const Config &cfg) : m_config(cfg) {}
 
-  inline const_iterator begin() { return Iterator(m_config); }
-  inline const_iterator end() { return Iterator(); }
+  const_iterator begin() const { return Iterator(m_config); }
+  const_iterator end() const { return Iterator(); }
 };

@@ -1,16 +1,13 @@
 #include <dupfind.h>
 
-#include <filesystem>
-#include <ranges>
+#include <filelist.h>
 
-using namespace std;
+#include <iostream>
 
 void DupFinder::run() {
-  // TODO: fill me with your code
-  for (const auto &d : m_config.dirs) {
-    auto files =
-        filesystem::recursive_directory_iterator(d) | views::filter([&](auto &e) { return is_match(m_config, e); });
+  for (const auto &entry : FileList{m_config}) {
+    // TODO: блочное чтение (m_config.block), хеширование (m_config.hash),
+    // группировка дубликатов и вывод результата.
+    std::cout << "file: " << entry << std::endl;
   }
 }
-
-bool DupFinder::is_match(const Config &, const std::filesystem::directory_entry &) { return true; }
