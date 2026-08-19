@@ -1,5 +1,6 @@
 #include <config.h>
 
+#include <algorithm>
 #include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -27,7 +28,7 @@ expected<Config, string> Config::make_config(int ac, char **av) {
   visible.add_options()
     ("help", "produce help message")
     ("exclude,E", po::value<vector<string>>(), "exclude directories")
-    ("depth,D", po::value<int>(&d)->default_value(0), "search depth")
+    ("depth,D", po::value<int>(&d)->default_value(INT_MAX), "search depth")
     ("min-size,F", po::value<int>(&m)->default_value(1), "minimum file size")
     ("file-masks,M", po::value<vector<string>>(), "file matching masks")
     ("block-size,S", po::value<int>(&s), "block size")
@@ -70,7 +71,7 @@ expected<Config, string> Config::make_config(int ac, char **av) {
   if (vm.count("block-size")) {
     s = vm["block-size"].as<int>();
     if (s < 1) {
-      s = 5;
+      return unexpected("Wrong block size specified!");
     }
   } else {
     return unexpected("No block size specified!");
@@ -87,7 +88,7 @@ expected<Config, string> Config::make_config(int ac, char **av) {
   if (vm.count("depth")) {
     d = vm["depth"].as<int>();
     if (d < 0) {
-      d = 0;
+      d = INT_MAX;
     }
   }
 
@@ -110,6 +111,10 @@ expected<Config, string> Config::make_config(int ac, char **av) {
     hash = Hash::sha1;
   } else {
     return unexpected("Unknown hash function '" + h + "'!");
+  }
+
+  for (auto &mask : f) {
+    transform(mask.begin(), mask.end(), mask.begin(), [](auto c) { return ::tolower(static_cast<unsigned char>(c)); });
   }
 
   return Config{i, e, f, static_cast<size_t>(d), static_cast<size_t>(s), static_cast<size_t>(m), hash};

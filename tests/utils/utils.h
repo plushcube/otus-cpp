@@ -10,9 +10,11 @@
 
 namespace test_utils {
 
-// Конфигурация по умолчанию: без масок, без ограничения глубины,
-// блок 1024 байта, минимальный размер 1 байт, хэш md5.
-Config make_config(std::vector<std::string> dirs, std::vector<std::string> exclude = {});
+// Конфигурация по умолчанию: без масок, глубина не ограничена (для тестов
+// глубины задавайте depth явно), блок 1024 байта, минимальный размер 1 байт.
+// Хэш можно переопределить.
+Config make_config(std::vector<std::string> dirs, std::vector<std::string> exclude = {},
+                   Config::Hash hash = Config::Hash::md5);
 
 // Все файлы, найденные FileList, полными путями.
 std::vector<std::filesystem::path> collect_files(const Config &cfg);

@@ -20,14 +20,15 @@ set(TASK_LIB "dupfind")
 option(WITH_TESTS "Whether to build tests" ON)
 
 add_executable(${TASK_CLI} "src/main.cpp")
-add_library(${TASK_LIB} STATIC "lib/config.cpp" "lib/debug.cpp"
-                               "lib/dupfind.cpp" "lib/filelist.cpp")
+add_library(
+  ${TASK_LIB} STATIC "lib/config.cpp" "lib/debug.cpp" "lib/dupfind.cpp"
+                     "lib/filelist.cpp" "lib/hasher.cpp")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
 
 include(FetchContent)
-set(BOOST_INCLUDE_LIBRARIES "program_options" "hash2")
+set(BOOST_INCLUDE_LIBRARIES "program_options" "hash2" "crc")
 FetchContent_Declare(
   boost
   URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.tar.xz
@@ -37,7 +38,7 @@ FetchContent_MakeAvailable(boost)
 
 target_include_directories(${TASK_LIB} PUBLIC "include")
 
-target_link_libraries(${TASK_LIB} PUBLIC Boost::program_options Boost::hash2)
+target_link_libraries(${TASK_LIB} PUBLIC Boost::program_options Boost::hash2 Boost::crc)
 target_link_libraries(${TASK_CLI} PRIVATE ${TASK_LIB})
 
 if(WITH_TESTS)
@@ -57,8 +58,8 @@ if(WITH_TESTS)
   target_include_directories(test_utils PUBLIC "tests")
   target_link_libraries(test_utils PUBLIC ${TASK_LIB})
   target_compile_definitions(
-    test_utils PUBLIC
-    "FIXTURES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures\"")
+    test_utils
+    PUBLIC "FIXTURES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures\"")
 
   set(TASK_TESTS test_filelist test_config test_dupfind)
   foreach(t ${TASK_TESTS})

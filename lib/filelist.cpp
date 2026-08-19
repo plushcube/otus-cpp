@@ -1,5 +1,6 @@
 #include <filelist.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <string>
 #include <system_error>
@@ -43,17 +44,11 @@ void FileList::Iterator::advance() {
 
     const auto &entry = *current;
 
-    // depth() отсчитывается от прямых детей корня (0, 1, ...), сам корень
-    // итератором не выдаётся. '>=' (а не '>') даёт «файлы не глубже depth
-    // уровней» без off-by-one: каталоги на глубине >= depth не обходим.
-    if (m_cfg->depth > 0 && current.depth() >= static_cast<int>(m_cfg->depth)) {
+    if (current.depth() >= static_cast<int>(m_cfg->depth)) {
       current.disable_recursion_pending();
     }
 
     if (entry.is_directory()) {
-      // Исключённые каталоги не обходим и не выдаём. Сравнение по
-      // нормализованному абсолютному пути: filesystem::equivalent бросает
-      // исключение для несуществующих путей, а тут такого быть не должно.
       const auto norm = [](const filesystem::path &p) { return filesystem::absolute(p).lexically_normal(); };
       const auto dir = norm(entry.path());
       bool excluded = false;
@@ -73,14 +68,19 @@ void FileList::Iterator::advance() {
         ++current;
         continue;
       }
+
       bool match = m_cfg->masks.empty();
-      const string name = entry.path().filename().string();
+      string name = entry.path().filename().string();
+      transform(name.begin(), name.end(), name.begin(),
+                [](auto c) { return ::tolower(static_cast<unsigned char>(c)); });
+
       for (const auto &m : m_cfg->masks) {
         if (matches_glob(name.c_str(), m.c_str())) {
           match = true;
           break;
         }
       }
+
       if (match) {
         m_current_value = entry;
         ++current;

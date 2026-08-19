@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <limits>
 #include <utility>
 
 #ifndef FIXTURES_DIR
@@ -10,8 +11,12 @@
 
 namespace test_utils {
 
-Config make_config(std::vector<std::string> dirs, std::vector<std::string> exclude) {
-  return Config{std::move(dirs), std::move(exclude), {}, 0, 1024, 1, Config::Hash::md5};
+Config make_config(std::vector<std::string> dirs, std::vector<std::string> exclude,
+                   Config::Hash hash) {
+  // Глубина обхода не ограничена (FileList кастует depth в int, поэтому
+  // берём максимум int, а не size_t); тестам глубины задают depth явно.
+  constexpr size_t unlimited_depth = static_cast<size_t>(std::numeric_limits<int>::max());
+  return Config{std::move(dirs), std::move(exclude), {}, unlimited_depth, 1024, 1, hash};
 }
 
 std::vector<std::filesystem::path> collect_files(const Config &cfg) {

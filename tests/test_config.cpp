@@ -2,6 +2,7 @@
 
 #include <config.h>
 
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -66,7 +67,8 @@ TEST(ConfigTest, MinimalValidConfig) {
   EXPECT_EQ(cfg.dirs, (std::vector<std::string>{"dir"}));
   EXPECT_TRUE(cfg.exclude.empty());
   EXPECT_TRUE(cfg.masks.empty());
-  EXPECT_EQ(cfg.depth, 0u);
+  // По умолчанию глубина не ограничена.
+  EXPECT_EQ(cfg.depth, static_cast<size_t>(std::numeric_limits<int>::max()));
   EXPECT_EQ(cfg.block, 1024u);
   EXPECT_EQ(cfg.min_size, 1u);
   EXPECT_EQ(cfg.hash, Config::Hash::md5);
@@ -85,11 +87,25 @@ TEST(ConfigTest, AllOptionsParsed) {
   EXPECT_EQ(cfg.hash, Config::Hash::sha1);
 }
 
-TEST(ConfigTest, OutOfRangeValuesAreClamped) {
-  const Config cfg = parse({"bayan", "dir", "--block-size=0", "-H", "crc32",
+TEST(ConfigTest, BlockSizeBelowOneIsError) {
+  EXPECT_EQ(parse_error({"bayan", "dir", "--block-size=0", "-H", "crc32"}),
+            "Wrong block size specified!");
+}
+
+TEST(ConfigTest, NegativeDepthUnlimitedAndMinSizeClamped) {
+  const Config cfg = parse({"bayan", "dir", "-S", "1024", "-H", "crc32",
                             "--depth=-5", "--min-size=0"});
-  EXPECT_EQ(cfg.block, 5u);   // <1 -> 5
-  EXPECT_EQ(cfg.depth, 0u);   // <0 -> 0
+  EXPECT_EQ(cfg.block, 1024u);
+  // Отрицательная глубина трактуется как «без ограничения».
+  EXPECT_EQ(cfg.depth, static_cast<size_t>(std::numeric_limits<int>::max()));
   EXPECT_EQ(cfg.min_size, 1u); // <1 -> 1
   EXPECT_EQ(cfg.hash, Config::Hash::crc32);
+}
+
+// Маски не зависят от регистра: при разборе конфига они приводятся
+// к нижнему регистру.
+TEST(ConfigTest, MasksAreLowercasedAtParseTime) {
+  const Config cfg = parse({"bayan", "dir", "-S", "1024", "-H", "md5",
+                            "-M", "*.TXT", "-M", "*.Cpp"});
+  EXPECT_EQ(cfg.masks, (std::vector<std::string>{"*.txt", "*.cpp"}));
 }
