@@ -85,14 +85,16 @@ bool DupFinder::read_next_block(File &file, DupFinder::Buffer &buf) {
       }
     }
     file.stream.read(buf.data(), static_cast<streamsize>(m_config.block));
+    // Короткое чтение до EOF — штатная ситуация (хвост дополняется нулями).
+    // badbit — настоящая ошибка ввода/вывода: файл в сравнении не участвует,
+    // иначе по недочитанному буферу можно было бы получить ложный дубликат.
+    if (file.stream.bad()) {
+      throw runtime_error("I/O error while reading file");
+    }
     file.blocks[file.hashed++] = m_hasher->get_hash(buf);
 
-  } catch (const filesystem::filesystem_error &e) {
-    cerr << "Filesystem error: " << e.what() << '\n';
-    return false;
-
   } catch (const std::exception &e) {
-    cerr << "General error: " << e.what() << '\n';
+    cerr << "Cannot read " << file.entry.path() << ": " << e.what() << '\n';
     return false;
   }
   return true;

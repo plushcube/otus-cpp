@@ -109,3 +109,24 @@ TEST(ConfigTest, MasksAreLowercasedAtParseTime) {
                             "-M", "*.TXT", "-M", "*.Cpp"});
   EXPECT_EQ(cfg.masks, (std::vector<std::string>{"*.txt", "*.cpp"}));
 }
+
+// Ошибки разбора (некорректное значение, неизвестная опция, повторное
+// указание скалярной опции) возвращаются как ошибка конфига, а не
+// роняют программу uncaught exception'ом от boost::program_options.
+TEST(ConfigTest, NonNumericValueIsCommandLineError) {
+  EXPECT_NE(parse_error({"bayan", "dir", "-S", "abc", "-H", "md5"})
+                .find("Command line error"),
+            std::string::npos);
+}
+
+TEST(ConfigTest, UnknownOptionIsCommandLineError) {
+  EXPECT_NE(parse_error({"bayan", "dir", "-S", "1024", "-H", "md5", "--bogus"})
+                .find("Command line error"),
+            std::string::npos);
+}
+
+TEST(ConfigTest, RepeatedScalarOptionIsCommandLineError) {
+  EXPECT_NE(parse_error({"bayan", "dir", "-S", "1024", "-S", "2048", "-H", "md5"})
+                .find("Command line error"),
+            std::string::npos);
+}

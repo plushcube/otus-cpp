@@ -52,13 +52,20 @@ expected<Config, string> Config::make_config(int ac, char **av) {
 
   // clang-format off
   po::variables_map vm;
-  po::store(
-    po::command_line_parser(ac, av)
-      .options(full)
-      .positional(p)
-      .run(),
-    vm);
-  po::notify(vm);
+  try {
+    po::store(
+      po::command_line_parser(ac, av)
+        .options(full)
+        .positional(p)
+        .run(),
+      vm);
+    po::notify(vm);
+  } catch (const po::error &e) {
+    // Некорректные значения (-S abc), неизвестные опции (--bogus),
+    // повторное указание скалярной опции и т.п. — ошибка разбора,
+    // а не крах программы с uncaught exception.
+    return unexpected(string("Command line error: ") + e.what());
+  }
   // clang-format on
 
   if (vm.count("help")) {
