@@ -8,42 +8,13 @@
 
 using namespace std;
 
-namespace {
-
-// true, если p лежит внутри root: p == root или p — подкаталог root.
-// Сравнение по компонентам пути, а не по строковому префиксу: каталог
-// вида «.hidden» внутри root не ломает проверку.
-bool is_within(const filesystem::path &p, const filesystem::path &root) {
-  auto r = root.begin();
-  auto q = p.begin();
-  for (; r != root.end(); ++r, ++q) {
-    if (q == p.end() || *r != *q) {
-      return false;
-    }
-  }
-  return true;
-}
-
-} // namespace
-
 FileList::Iterator::Iterator(const Config &cfg) : m_cfg(&cfg), m_is_end(false) {
-  // Пересекающиеся корни, например /data и /data/subdir, привели бы к
-  // повторному обходу одного поддерева: один и тот же путь попал бы в
-  // список несколько раз, и файл мог бы быть объявлен дубликатом самого
-  // себя. Оставляем только «верхние» корни — те, что не лежат внутри
-  // другого (включая точные совпадения); их поддеревья уже покроют всё
-  // остальное.
   vector<filesystem::path> roots;
   for (const auto &dir : cfg.dirs) {
     const auto d = filesystem::absolute(dir).lexically_normal();
-    // Новый корень поглощает уже добавленные, лежащие внутри него.
-    roots.erase(remove_if(roots.begin(), roots.end(),
-                          [&](const filesystem::path &r) { return is_within(r, d); }),
+    roots.erase(remove_if(roots.begin(), roots.end(), [&](const filesystem::path &r) { return is_within(r, d); }),
                 roots.end());
-    // Сам не добавляем, если лежит внутри уже добавленного корня.
-    const bool nested =
-        any_of(roots.begin(), roots.end(),
-               [&](const filesystem::path &r) { return is_within(d, r); });
+    const bool nested = any_of(roots.begin(), roots.end(), [&](const filesystem::path &r) { return is_within(d, r); });
     if (!nested) {
       roots.push_back(d);
     }
@@ -167,4 +138,15 @@ bool FileList::matches_glob(const char *str, const char *pat) {
   }
 
   return (*p == '\0');
+}
+
+bool FileList::is_within(const filesystem::path &p, const filesystem::path &root) {
+  auto r = root.begin();
+  auto q = p.begin();
+  for (; r != root.end(); ++r, ++q) {
+    if (q == p.end() || *r != *q) {
+      return false;
+    }
+  }
+  return true;
 }

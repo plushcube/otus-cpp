@@ -10,7 +10,8 @@ class FileList {
 private:
   const Config m_config;
 
-  static bool matches_glob(const char *str, const char *pat);
+  static bool matches_glob(const char *, const char *);
+  static bool is_within(const std::filesystem::path &, const std::filesystem::path &);
 
   class Iterator {
   public:
