@@ -115,3 +115,80 @@ TEST(FileListTest, DepthZeroScansOnlyTopLevelDirectory) {
                    0u, 1024u, 1u, Config::Hash::md5};
   EXPECT_EQ(file_names(cfg), (std::set<std::string>{"top.txt"}));
 }
+
+// Пересекающиеся корни (/data и /data/subdir): поддерево /data/subdir
+// обходится один раз — через родительский корень. Иначе путь попал бы в
+// список дважды, и файл мог бы быть объявлен дубликатом самого себя.
+TEST(FileListTest, NestedRootIsNotScannedTwice) {
+  TempDir tmp;
+  std::filesystem::create_directories(tmp.path() / "data" / "subdir");
+  write_file(tmp.path() / "data" / "top.txt", "x");
+  write_file(tmp.path() / "data" / "subdir" / "deep.txt", "y");
+
+  const Config cfg = make_config({(tmp.path() / "data").string(),
+                                  (tmp.path() / "data" / "subdir").string()});
+  const auto files = collect_files(cfg);
+
+  ASSERT_EQ(files.size(), 2u);
+  EXPECT_EQ(std::set<fs::path>(files.begin(), files.end()),
+            (std::set<fs::path>{tmp.path() / "data" / "top.txt",
+                                tmp.path() / "data" / "subdir" / "deep.txt"}));
+}
+
+// Тот же случай, но корни перечислены в обратном порядке: результат
+// не зависит от порядка.
+TEST(FileListTest, NestedRootsInReverseOrder) {
+  TempDir tmp;
+  std::filesystem::create_directories(tmp.path() / "data" / "subdir");
+  write_file(tmp.path() / "data" / "top.txt", "x");
+  write_file(tmp.path() / "data" / "subdir" / "deep.txt", "y");
+
+  const Config cfg = make_config({(tmp.path() / "data" / "subdir").string(),
+                                  (tmp.path() / "data").string()});
+  const auto files = collect_files(cfg);
+
+  ASSERT_EQ(files.size(), 2u);
+  EXPECT_EQ(std::set<fs::path>(files.begin(), files.end()),
+            (std::set<fs::path>{tmp.path() / "data" / "top.txt",
+                                tmp.path() / "data" / "subdir" / "deep.txt"}));
+}
+
+// Один и тот же корень указан дважды — обходится один раз.
+TEST(FileListTest, DuplicateRootIsScannedOnce) {
+  TempDir tmp;
+  write_file(tmp.path() / "a.txt", "x");
+
+  const Config cfg = make_config({tmp.path().string(), tmp.path().string()});
+  const auto files = collect_files(cfg);
+
+  ASSERT_EQ(files.size(), 1u);
+  EXPECT_EQ(files[0], tmp.path() / "a.txt");
+}
+
+// Разные лексические формы одного пути (слеш на конце, «./», «..»)
+// схлопываются нормализацией: корень один, обход один.
+TEST(FileListTest, LexicallyDifferentFormsOfSameRoot) {
+  TempDir tmp;
+  std::filesystem::create_directories(tmp.path() / "data" / "subdir");
+  write_file(tmp.path() / "data" / "a.txt", "x");
+
+  const std::string data = (tmp.path() / "data").string();
+  const Config cfg = make_config({data + "/", data + "/./subdir/.."});
+  const auto files = collect_files(cfg);
+
+  ASSERT_EQ(files.size(), 1u);
+  EXPECT_EQ(files[0], tmp.path() / "data" / "a.txt");
+}
+
+// Непересекающиеся корни оба обходятся; общих путей нет.
+TEST(FileListTest, DisjointRootsAreBothScanned) {
+  TempDir tmp;
+  std::filesystem::create_directories(tmp.path() / "a");
+  std::filesystem::create_directories(tmp.path() / "b");
+  write_file(tmp.path() / "a" / "1.txt", "x");
+  write_file(tmp.path() / "b" / "2.txt", "y");
+
+  const Config cfg = make_config({(tmp.path() / "a").string(),
+                                  (tmp.path() / "b").string()});
+  EXPECT_EQ(file_names(cfg), (std::set<std::string>{"1.txt", "2.txt"}));
+}

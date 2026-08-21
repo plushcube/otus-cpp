@@ -153,6 +153,40 @@ TEST(DupFinderTest, DifferentSizesAreNotDuplicates) {
   EXPECT_TRUE(DupFinder{cfg}.run().empty());
 }
 
+// Пересекающиеся корни (/data и /data/subdir) не должны приводить к тому,
+// что файл объявлен дубликатом самого себя: раньше путь попадал в список
+// дважды и «находил» сам себя.
+TEST(DupFinderTest, OverlappingRootsDoNotCreateSelfDuplicates) {
+  TempDir tmp;
+  std::filesystem::create_directories(tmp.path() / "data" / "subdir");
+  write_file(tmp.path() / "data" / "subdir" / "b.txt", "beta");
+  write_file(tmp.path() / "data" / "c.txt", "gamma");
+
+  const Config cfg = make_config({(tmp.path() / "data").string(),
+                                  (tmp.path() / "data" / "subdir").string()});
+  EXPECT_TRUE(DupFinder{cfg}.run().empty());
+}
+
+// Настоящие дубликаты внутри пересекающегося поддерева находятся ровно
+// один раз: группа не загрязняется повторными путями одного файла.
+TEST(DupFinderTest, OverlappingRootsStillFindRealDuplicates) {
+  TempDir tmp;
+  std::filesystem::create_directories(tmp.path() / "data" / "subdir");
+  write_file(tmp.path() / "data" / "subdir" / "a.txt", "same");
+  write_file(tmp.path() / "data" / "subdir" / "b.txt", "same");
+  write_file(tmp.path() / "data" / "subdir" / "c.txt", "unique");
+
+  const Config cfg = make_config({(tmp.path() / "data").string(),
+                                  (tmp.path() / "data" / "subdir").string()});
+  const auto result = DupFinder{cfg}.run();
+
+  ASSERT_EQ(result.size(), 1u);
+  ASSERT_EQ(result[0].size(), 2u); // без повторных путей
+  EXPECT_EQ(group_sets(result)[0],
+            (std::set<fs::path>{tmp.path() / "data" / "subdir" / "a.txt",
+                                tmp.path() / "data" / "subdir" / "b.txt"}));
+}
+
 // Если файл не удалось прочитать (например, нет прав), он не должен
 // считаться дубликатом другого файла: сбой чтения прерывает сравнение.
 // NB: под root права снять не удастся — тест пропускается.
