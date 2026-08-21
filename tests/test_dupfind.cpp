@@ -139,22 +139,18 @@ TEST(DupFinderTest, LastPartialBlockIsZeroPadded) {
             (std::set<fs::path>{tmp.path() / "nl.txt", tmp.path() / "copy.txt"}));
 }
 
-// Файлы разного размера могут оказаться дубликатами: хвостовой неполный
-// блок дополняется нулями, поэтому "Hello\n" (6 байт) и "Hello\n\0\0\0\0"
+// Файлы разного размера дубликатами не считаются: проверяется размер
+// файла, а не число блоков. "Hello\n" (6 байт) и "Hello\n\0\0\0\0"
 // (10 байт) при S = 5 дают одинаковую последовательность блоков
-// ["Hello", "\n\0\0\0\0"]. Решающим является равенство числа блоков,
-// а не размера файла.
-TEST(DupFinderTest, DifferentSizesWithZeroPaddedTailAreDuplicates) {
+// ["Hello", "\n\0\0\0\0"] (хвостовой неполный блок дополняется нулями),
+// но разный размер — не пара.
+TEST(DupFinderTest, DifferentSizesAreNotDuplicates) {
   TempDir tmp;
   write_file(tmp.path() / "six.txt", "Hello\n");
   write_file(tmp.path() / "ten.txt", std::string("Hello\n\0\0\0\0", 10));
 
   const Config cfg = block_config(tmp.path().string(), 5);
-  const auto result = DupFinder{cfg}.run();
-
-  ASSERT_EQ(result.size(), 1u);
-  EXPECT_EQ(group_sets(result)[0],
-            (std::set<fs::path>{tmp.path() / "six.txt", tmp.path() / "ten.txt"}));
+  EXPECT_TRUE(DupFinder{cfg}.run().empty());
 }
 
 // Если файл не удалось прочитать (например, нет прав), он не должен
