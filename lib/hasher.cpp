@@ -5,6 +5,7 @@
 #include <boost/crc.hpp>
 #include <boost/hash2/md5.hpp>
 #include <boost/hash2/sha1.hpp>
+#include <utility>
 
 std::unique_ptr<Hasher> Hasher::make_hasher(const Config &cfg) {
   switch (cfg.hash) {
@@ -15,6 +16,7 @@ std::unique_ptr<Hasher> Hasher::make_hasher(const Config &cfg) {
   case Config::Hash::sha1:
     return std::make_unique<SHA1_Hasher>();
   }
+  std::unreachable();
 }
 
 Hasher::Hash CRC_Hasher::get_hash(const std::vector<char> &msg) {

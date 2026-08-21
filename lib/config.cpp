@@ -1,6 +1,8 @@
 #include <config.h>
 
 #include <algorithm>
+#include <cstddef>
+
 #include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -20,18 +22,19 @@ template <class T> string str(const T &x) {
 
 expected<Config, string> Config::make_config(int ac, char **av) {
   vector<string> i, e, f;
-  int d, m, s;
+  int d;
+  size_t m, s;
   string h;
 
   // clang-format off
   po::options_description visible("Allowed options");
   visible.add_options()
     ("help", "produce help message")
-    ("exclude,E", po::value<vector<string>>(), "exclude directories")
+    ("exclude,E", po::value<vector<string>>()->multitoken()->composing(), "exclude directories")
     ("depth,D", po::value<int>(&d)->default_value(INT_MAX), "search depth")
-    ("min-size,F", po::value<int>(&m)->default_value(1), "minimum file size")
-    ("file-masks,M", po::value<vector<string>>(), "file matching masks")
-    ("block-size,S", po::value<int>(&s), "block size")
+    ("min-size,F", po::value<size_t>(&m)->default_value(1), "minimum file size")
+    ("file-masks,M", po::value<vector<string>>()->multitoken()->composing(), "file matching masks")
+    ("block-size,S", po::value<size_t>(&s), "block size")
     ("hash,H", po::value<string>(&h), "hash algorithm")
   ;
 
@@ -69,7 +72,7 @@ expected<Config, string> Config::make_config(int ac, char **av) {
   }
 
   if (vm.count("block-size")) {
-    s = vm["block-size"].as<int>();
+    s = vm["block-size"].as<size_t>();
     if (s < 1) {
       return unexpected("Wrong block size specified!");
     }
@@ -93,7 +96,7 @@ expected<Config, string> Config::make_config(int ac, char **av) {
   }
 
   if (vm.count("min-size")) {
-    m = vm["min-size"].as<int>();
+    m = vm["min-size"].as<size_t>();
     if (m < 1) {
       m = 1;
     }
@@ -117,5 +120,5 @@ expected<Config, string> Config::make_config(int ac, char **av) {
     transform(mask.begin(), mask.end(), mask.begin(), [](auto c) { return ::tolower(static_cast<unsigned char>(c)); });
   }
 
-  return Config{i, e, f, static_cast<size_t>(d), static_cast<size_t>(s), static_cast<size_t>(m), hash};
+  return Config{i, e, f, static_cast<size_t>(d), s, m, hash};
 }

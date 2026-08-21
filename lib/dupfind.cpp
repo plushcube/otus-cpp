@@ -55,6 +55,9 @@ DupFinder::Result DupFinder::run() {
 }
 
 bool DupFinder::match(File &f1, File &f2, DupFinder::Buffer &buf) {
+  // Решающим является равенство числа блоков, а не размера файла:
+  // хвостовой неполный блок дополняется нулями, поэтому файлы разного
+  // размера с одинаковым содержимым считаются дубликатами.
   if (f1.blocks.size() != f2.blocks.size()) {
     return false;
   }
