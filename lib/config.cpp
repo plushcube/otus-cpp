@@ -2,14 +2,13 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <sstream>
 
 #include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/value_semantic.hpp>
 #include <boost/program_options/variables_map.hpp>
-
-#include <sstream>
 
 using namespace std;
 namespace po = boost::program_options;
@@ -61,9 +60,6 @@ expected<Config, string> Config::make_config(int ac, char **av) {
       vm);
     po::notify(vm);
   } catch (const po::error &e) {
-    // Некорректные значения (-S abc), неизвестные опции (--bogus),
-    // повторное указание скалярной опции и т.п. — ошибка разбора,
-    // а не крах программы с uncaught exception.
     return unexpected(string("Command line error: ") + e.what());
   }
   // clang-format on

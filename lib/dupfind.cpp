@@ -55,9 +55,6 @@ DupFinder::Result DupFinder::run() {
 }
 
 bool DupFinder::match(File &f1, File &f2, DupFinder::Buffer &buf) {
-  // Дубликатами могут быть только файлы одинакового размера: проверяем
-  // размер, а не число блоков. Разный размер — не пара, даже если
-  // хвостовые неполные блоки при дополнении нулями дают одинаковые хеши.
   if (f1.entry.file_size() != f2.entry.file_size()) {
     return false;
   }
@@ -85,9 +82,6 @@ bool DupFinder::read_next_block(File &file, DupFinder::Buffer &buf) {
       }
     }
     file.stream.read(buf.data(), static_cast<streamsize>(m_config.block));
-    // Короткое чтение до EOF — штатная ситуация (хвост дополняется нулями).
-    // badbit — настоящая ошибка ввода/вывода: файл в сравнении не участвует,
-    // иначе по недочитанному буферу можно было бы получить ложный дубликат.
     if (file.stream.bad()) {
       throw runtime_error("I/O error while reading file");
     }
