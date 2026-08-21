@@ -107,6 +107,22 @@ TEST(DupFinderTest, MoreThanTwoDuplicatesFormOneGroup) {
                                 tmp.path() / "c.txt"}));
 }
 
+TEST(DupFinderTest, MixedSizesAreGroupedBySize) {
+  TempDir tmp;
+  write_file(tmp.path() / "same1.txt", std::string(100, 'a'));
+  write_file(tmp.path() / "same2.txt", std::string(100, 'a'));
+  write_file(tmp.path() / "u1.txt", std::string(10, 'b'));
+  write_file(tmp.path() / "u2.txt", std::string(20, 'c'));
+  write_file(tmp.path() / "u3.txt", std::string(30, 'd'));
+
+  const Config cfg = make_config({tmp.path().string()});
+  const auto result = DupFinder{cfg}.run();
+
+  ASSERT_EQ(result.size(), 1u);
+  EXPECT_EQ(group_sets(result)[0],
+            (std::set<fs::path>{tmp.path() / "same1.txt", tmp.path() / "same2.txt"}));
+}
+
 // Файлы с разным числом блоков не могут быть дубликатами, даже если
 // первый блок совпадает: полная последовательность хешей блоков должна
 // совпасть. "Hello" — 1 блок, "Hello\nWorld!!!" — 3 блока при S = 5

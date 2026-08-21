@@ -1,4 +1,5 @@
 #include "config.h"
+#include <algorithm>
 #include <cstring>
 #include <dupfind.h>
 #include <filelist.h>
@@ -22,6 +23,10 @@ DupFinder::Result DupFinder::run() {
     return {};
   }
 
+  sort(m_files.begin(), m_files.end(), [](const File &a, const File &b) {
+    return a.entry.file_size() < b.entry.file_size();
+  });
+
   DupFinder::Result result{};
   DupFinder::Buffer b(m_config.block, 0);
 
@@ -33,7 +38,9 @@ DupFinder::Result DupFinder::run() {
 
     DupFinder::Doubles pack{filesystem::absolute(f1.entry.path()).string()};
 
-    for (size_t j = i + 1; j < m_files.size(); ++j) {
+    for (size_t j = i + 1;
+         j < m_files.size() && m_files[j].entry.file_size() == f1.entry.file_size();
+         ++j) {
       auto &f2 = m_files[j];
       if (f2.is_grouped) {
         continue;
