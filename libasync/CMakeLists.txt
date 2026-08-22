@@ -6,7 +6,7 @@ endif()
 
 option(WITH_TESTS "Whether to build tests" ON)
 
-add_library(async SHARED "src/async.cpp" "src/scheduler.cpp")
+add_library(async SHARED "src/async.cpp" "src/parser.cpp" "src/scheduler.cpp")
 
 add_library(async::async ALIAS async)
 
