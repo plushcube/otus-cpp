@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <string>
 
 // Export/import macro: only these functions become visible in libasync.so.
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -18,9 +17,8 @@
 #define ASYNC_API ASYNC_API_IMPORT
 #endif
 
-using AsyncContext = size_t;
-using Message = std::string;
+using ContextID = size_t;
 
-ASYNC_API AsyncContext connect(const size_t &bulk_size);
-ASYNC_API void receive(const AsyncContext &context, const Message &message);
-ASYNC_API void disconnect(const AsyncContext &context);
+ASYNC_API ContextID connect(const size_t &block_size);
+ASYNC_API void receive(const ContextID &cid, const char *buffer, const size_t &size);
+ASYNC_API void disconnect(const ContextID &cid);

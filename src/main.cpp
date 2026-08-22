@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   const auto p = connect(n);
   std::string s;
   while (std::getline(std::cin, s)) {
-    receive(p, s);
+    receive(p, s.c_str(), s.size());
   }
   disconnect(p);
 

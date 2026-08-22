@@ -5,9 +5,9 @@
 TEST(lib_test, connect_receive_disconnect) {
   const auto ctx = connect(2);
 
-  receive(ctx, "cmd1");
-  receive(ctx, "cmd2");
-  receive(ctx, "cmd3");
+  receive(ctx, "cmd1", 4);
+  receive(ctx, "cmd2", 4);
+  receive(ctx, "cmd3", 4);
 
   disconnect(ctx);
 }
