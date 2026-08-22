@@ -1,9 +1,4 @@
-#include <di/real_container.h>
-#include <processor/printer.h>
-#include <processor/saver.h>
-
-#include <parser.h>
-
+#include <async/async.h>
 #include <iostream>
 
 int main(int argc, char **argv) {
@@ -20,17 +15,12 @@ int main(int argc, char **argv) {
     }
   }
 
-  auto di = std::make_shared<RealContainer>();
-  Parser p(di, n);
-  p.add_processor(std::make_shared<Printer>());
-  p.add_processor(std::make_shared<Saver>());
-
+  const auto p = connect(n);
   std::string s;
-  p.start();
   while (std::getline(std::cin, s)) {
-    p.process(s);
+    receive(p, s);
   }
-  p.stop();
+  disconnect(p);
 
   return 0;
 }

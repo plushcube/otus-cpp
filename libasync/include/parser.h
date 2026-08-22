@@ -62,7 +62,7 @@ public:
     }
   }
 
-  void stop() noexcept { flush(); }
+  void stop() const noexcept { flush(); }
 
 private:
   std::shared_ptr<CollectorProvider> p_provider;
