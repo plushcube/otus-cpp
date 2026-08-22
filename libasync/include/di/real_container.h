@@ -1,5 +1,10 @@
 #pragma once
 
+#include <collector/dynamic_collector.h>
+#include <collector/provider.h>
+#include <collector/static_collector.h>
+#include <processor/saver.h>
+
 #include "container.h"
 
 class RealContainer : public DI_Container, public std::enable_shared_from_this<DI_Container> {

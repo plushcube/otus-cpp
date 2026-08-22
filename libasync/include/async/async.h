@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <string>
 
-#include <parser.h>
-
 // Export/import macro: only these functions become visible in libasync.so.
 #if defined(_WIN32) || defined(__CYGWIN__)
 #define ASYNC_API_EXPORT __declspec(dllexport)
@@ -20,7 +18,7 @@
 #define ASYNC_API ASYNC_API_IMPORT
 #endif
 
-using AsyncContext = Parser;
+using AsyncContext = size_t;
 using Message = std::string;
 
 ASYNC_API AsyncContext connect(const size_t &bulk_size);
