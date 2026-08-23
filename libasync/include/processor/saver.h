@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,10 @@ private:
   }
 
   void save_to_file(const std::string &c, const std::string &f) const {
+    // Параллельные контексты могут получить один timestamp и писать в один
+    // файл: open/append/close сериализуются, чтобы строки не перемешивались.
+    static std::mutex m;
+    std::lock_guard lk(m);
     std::filesystem::path path = f;
     std::ofstream out(path, std::ios::app);
     if (!out.is_open()) {

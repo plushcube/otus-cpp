@@ -4,6 +4,7 @@
 #include <parser.h>
 
 #include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 
 class Scheduler {
@@ -17,14 +18,15 @@ public:
 
   static Scheduler &shared() noexcept;
 
-  Task start_task(const size_t &) noexcept;
-  void stop_task(const ID &) noexcept;
-  std::shared_ptr<Parser> get_value(const ID &id) noexcept { return m_tasks[id]; }
+  Task start_task(const size_t &);
+  void stop_task(const ID &);
+  std::shared_ptr<Parser> get_value(const ID &id);
 
 private:
   Scheduler() : p_di(std::make_shared<RealContainer>()) {};
 
   std::shared_ptr<DI_Container> p_di;
+  std::shared_mutex m_mutex;
   std::unordered_map<ID, std::shared_ptr<Parser>> m_tasks{};
   ID m_next_id{0};
 };

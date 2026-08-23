@@ -2,30 +2,29 @@
 
 echo "Running self-check..."
 
-echo "  Building..."
-cmake -S . -B .build -Wno-dev 2>&1 > /dev/null
-cmake --build .build 2>&1 > /dev/null
-echo "  Testing..."
-ctest --test-dir .build 2>&1 > /dev/null
-if [ $? -eq 0 ]; then
-    echo "✅ Tests passed."
-else
-    echo "❌ Tests failed. Self-check aborted."
+echo "  Building (normal)..."
+cmake -S . -B .build -Wno-dev >/dev/null
+cmake --build .build >/dev/null
+
+echo "  Testing (normal)..."
+if ! ctest --test-dir .build --output-on-failure >/dev/null; then
+    echo "❌ Normal tests failed."
     exit 1
 fi
 
-if [ "$1" == "" ]; then
-    echo "❌ No input file provided. Self-check aborted."
+echo "  Building (tsan)..."
+cmake -S . -B .build-tsan -DASYNC_TSAN=ON -Wno-dev >/dev/null
+cmake --build .build-tsan >/dev/null
+
+echo "  Testing (tsan)..."
+if ! ctest --test-dir .build-tsan --output-on-failure >/dev/null; then
+    echo "❌ TSan tests failed."
     exit 1
 fi
 
-echo "  Checking output for $1 ..."
-SUM=$(cat "$1" | .build/ip_filter | md5sum)
-echo "  MD5 sum:  $SUM"
-if [ "$SUM" == "24e7a7b2270daee89c64d3ca5fb3da1a  -" ]; then
-    echo "✅ Output matches expected."
-else
-    echo "❌ Output does not match expected. Self-check failed."
+echo "  Testing (stability)..."
+if ! ctest --test-dir .build -R MtFixture --repeat until-fail:20 --output-on-failure >/dev/null; then
+    echo "❌ Stability check failed."
     exit 1
 fi
 

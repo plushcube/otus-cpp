@@ -15,8 +15,11 @@ ContextID connect(const size_t &block_size) {
 }
 
 void receive(const ContextID &cid, const char *buffer, const size_t &size) {
-  std::string s(buffer, size);
-  Scheduler::shared().get_value(cid)->process(s);
+  auto parser = Scheduler::shared().get_value(cid);
+  if (!parser) {
+    throw std::invalid_argument("unknown context id");
+  }
+  parser->process(std::string(buffer, size));
 }
 
 void disconnect(const ContextID &cid) { Scheduler::shared().stop_task(cid); }
