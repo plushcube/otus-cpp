@@ -6,7 +6,6 @@
 #include <format>
 #include <fstream>
 #include <iostream>
-#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -42,24 +41,20 @@ private:
     const uint64_t ts = static_cast<uint64_t>(t);
     const std::string base =
         m_postfix.empty() ? std::format("bulk{}.log", ts) : std::format("bulk{}_{}.log", ts, m_postfix);
-    std::string name = base;
-    if (base == m_last_filename) {
-      name = m_postfix.empty() ? std::format("bulk{}_{}.log", ts, ++m_sequence)
-                               : std::format("bulk{}_{}_{}.log", ts, m_postfix, ++m_sequence);
+    if (base == m_last_base) {
+      ++m_sequence; // ещё один блок за ту же секунду на этом же потоке
     } else {
+      m_last_base = base;
       m_sequence = 0;
     }
-    m_last_filename = name;
-    return name;
+    if (m_sequence == 0) {
+      return base;
+    }
+    return m_postfix.empty() ? std::format("bulk{}_{}.log", ts, m_sequence)
+                             : std::format("bulk{}_{}_{}.log", ts, m_postfix, m_sequence);
   }
 
   void save_to_file(const std::string &c, const std::string &f) const {
-    // Мьютекс временно остаётся: до переделки Parser::flush синхронный путь
-    // держит по Saver'у на контекст, и параллельные контексты за одну секунду
-    // пишут в один файл. Когда останутся только воркеры диспетчера (по одному
-    // Saver'у на поток, имена гарантированно различаются) — убрать.
-    static std::mutex m;
-    std::lock_guard lk(m);
     std::filesystem::path path = f;
     std::ofstream out(path, std::ios::app);
     if (!out.is_open()) {
@@ -70,6 +65,6 @@ private:
   }
 
   std::string m_postfix;
-  mutable std::string m_last_filename;
+  mutable std::string m_last_base;
   mutable unsigned m_sequence{0};
 };

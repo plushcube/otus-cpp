@@ -3,24 +3,23 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <vector>
 
-#include <collector/collector.h>
+#include <async/dispatcher.h>
 #include <collector/provider.h>
 #include <di/container.h>
-#include <processor/processor.h>
 
 class Parser {
 public:
   explicit Parser(std::weak_ptr<DI_Container>, const size_t &);
-  void add_processor(std::shared_ptr<Processor>);
-  void start() noexcept;
-  void process(const std::string &) const noexcept;
-  void stop() const noexcept;
+
+  void feed(const char *data, const size_t size);
+  void stop() noexcept;
 
 private:
-  std::shared_ptr<CollectorProvider> p_provider;
-  std::vector<std::shared_ptr<Processor>> p_processors;
+  void process(const std::string &line) noexcept;
+  void flush() noexcept;
 
-  void flush() const noexcept;
+  std::shared_ptr<CollectorProvider> p_provider;
+  std::shared_ptr<Dispatcher> p_dispatcher;
+  std::string m_input; // неполные строки между порциями
 };

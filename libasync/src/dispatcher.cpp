@@ -6,8 +6,8 @@
 
 namespace {
 
-// Имена потоков для отладки (опционально, plan.md 1.7). API на Apple/Linux
-// различается; на остальных платформах — no-op.
+// Имена потоков для отладки. API на Apple/Linux различается; на остальных
+// платформах — no-op.
 void set_thread_name(const char *name) noexcept {
 #if defined(__APPLE__)
   pthread_setname_np(name);

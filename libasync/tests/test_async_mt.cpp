@@ -26,9 +26,12 @@
 
 #include <algorithm>
 #include <barrier>
+#include <cctype>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -98,6 +101,80 @@ std::vector<std::string> parse_line(const std::string &line) {
     }
   }
   return out;
+}
+
+// Команда в библиотеке завершается '\n' (receive может получать порцию с
+// несколькими командами, кусок команды может рваться между вызовами) —
+// отправляем команду как строку с завершающим переводом строки.
+void recv(const ContextID ctx, const std::string &cmd) {
+  const std::string line = cmd + '\n';
+  receive(ctx, line.c_str(), line.size());
+}
+
+// Имена bulk*.log в текущей директории.
+std::vector<std::string> log_file_names() {
+  std::vector<std::string> out;
+  std::error_code ec;
+  for (const auto &e : std::filesystem::directory_iterator(".", ec)) {
+    const std::string name = e.path().filename().string();
+    if (name.starts_with("bulk") && name.ends_with(".log")) {
+      out.push_back(name);
+    }
+  }
+  return out;
+}
+
+// Содержимое каждого bulk*.log (одна строка "bulk: ..." на файл).
+std::vector<std::string> log_file_contents() {
+  std::vector<std::string> out;
+  std::error_code ec;
+  for (const auto &e : std::filesystem::directory_iterator(".", ec)) {
+    const std::string name = e.path().filename().string();
+    if (name.starts_with("bulk") && name.ends_with(".log")) {
+      std::ifstream in(e.path());
+      std::string content((std::istreambuf_iterator<char>(in)),
+                          std::istreambuf_iterator<char>());
+      while (!content.empty() &&
+             (content.back() == '\n' || content.back() == '\r' || content.back() == ' ')) {
+        content.pop_back();
+      }
+      out.push_back(std::move(content));
+    }
+  }
+  return out;
+}
+
+// Имя вида bulk{ts}_{postfix}.log или bulk{ts}_{postfix}_{seq}.log.
+bool is_valid_log_name(const std::string &name) {
+  if (!name.starts_with("bulk") || !name.ends_with(".log")) {
+    return false;
+  }
+  const std::string mid = name.substr(4, name.size() - 8); // без "bulk" и ".log"
+  std::vector<std::string> parts;
+  std::stringstream ss(mid);
+  std::string part;
+  while (std::getline(ss, part, '_')) {
+    parts.push_back(part);
+  }
+  if (parts.size() < 2 || parts.size() > 3) {
+    return false;
+  }
+  for (const auto &p : parts) {
+    if (p.empty() ||
+        !std::all_of(p.begin(), p.end(),
+                     [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; })) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Постфикс файлового потока из имени (второй компонент, после timestamp).
+std::string log_name_postfix(const std::string &name) {
+  const std::string mid = name.substr(4, name.size() - 8);
+  const auto first = mid.find('_');
+  const auto second = mid.find('_', first + 1);
+  return mid.substr(first + 1, second == std::string::npos ? std::string::npos : second - first - 1);
 }
 
 class MtFixture : public ::testing::Test {
@@ -180,7 +257,7 @@ TEST_F(MtFixture, ConcurrentConnectYieldsUniqueContexts) {
 
   // Каждый контекст работоспособен: 1 команда + disconnect -> partial bulk.
   for (const auto id : ids) {
-    receive(id, "x", 1);
+    recv(id, "x");
     disconnect(id);
   }
   const auto lines = bulk_lines();
@@ -209,7 +286,7 @@ TEST_F(MtFixture, ConcurrentReceiveKeepsContextsIsolated) {
       const auto ctx = connect(kBlock);
       for (int c = 0; c < kCommands; ++c) {
         const std::string cmd = "t" + std::to_string(t) + "_c" + std::to_string(c);
-        receive(ctx, cmd.c_str(), cmd.size());
+        recv(ctx, cmd);
       }
       disconnect(ctx);
     });
@@ -277,14 +354,13 @@ TEST_F(MtFixture, ConcurrentBlocksAreGroupedPerContext) {
       barrier.arrive_and_wait();
       const auto ctx = connect(kBlock);
       const auto cmd = [&](const std::string &suffix) {
-        const std::string c = "t" + std::to_string(t) + suffix;
-        receive(ctx, c.c_str(), c.size());
+        recv(ctx, "t" + std::to_string(t) + suffix);
       };
       cmd("_pre1");
-      receive(ctx, "{", 1); // открытие динамического блока
+      recv(ctx, "{"); // открытие динамического блока
       cmd("_b1");
       cmd("_b2");
-      receive(ctx, "}", 1); // закрытие -> flush динамического блока
+      recv(ctx, "}"); // закрытие -> flush динамического блока
       cmd("_post1");
       disconnect(ctx); // flush хвостового static-bulk'а
     });
@@ -332,7 +408,7 @@ TEST_F(MtFixture, StressConnectReceiveDisconnectChurn) {
         const auto ctx = connect(kBlock);
         for (int c = 0; c < kCmds; ++c) {
           const std::string cmd = "t" + std::to_string(t) + "_i" + std::to_string(it) + "_c" + std::to_string(c);
-          receive(ctx, cmd.c_str(), cmd.size());
+          recv(ctx, cmd);
         }
         disconnect(ctx);
       }
@@ -374,15 +450,140 @@ TEST_F(MtFixture, StressConnectReceiveDisconnectChurn) {
 // ---------------------------------------------------------------------------
 TEST_F(MtFixture, ReceiveOnDestroyedContextThrows) {
   const auto ctx = connect(2);
-  receive(ctx, "a", 1);
+  recv(ctx, "a");
   disconnect(ctx);
-  EXPECT_THROW(receive(ctx, "b", 1), std::invalid_argument);
+  EXPECT_THROW(recv(ctx, "b"), std::invalid_argument);
 }
 
 TEST_F(MtFixture, DoubleDisconnectIsSafe) {
   const auto ctx = connect(2);
-  receive(ctx, "a", 1);
+  recv(ctx, "a");
   disconnect(ctx);
   EXPECT_NO_THROW(disconnect(ctx));
-  EXPECT_THROW(receive(ctx, "b", 1), std::invalid_argument);
+  EXPECT_THROW(recv(ctx, "b"), std::invalid_argument);
+}
+
+// ---------------------------------------------------------------------------
+// 6. Канонический пример задания: receive() принимает порции, в которых может
+//    быть несколько команд ('\n'-разделитель), а кусок команды может рваться
+//    между вызовами (receive(h, "1", 1) затем "\n2\n3..."). Эталонный вывод
+//    задания (bulk = 5): пять блоков в строгом порядке.
+// ---------------------------------------------------------------------------
+TEST_F(MtFixture, CanonicalExternalSampleMatchesTaskOutput) {
+  const auto h = connect(5);
+  const auto h2 = connect(5);
+
+  receive(h, "1", 1);              // хвост без '\n' — буферизуется
+  receive(h2, "1\n", 2);           // h2: команда 1 (одна, блок не полон)
+  receive(h, "\n2\n3\n4\n5\n6\n{\na\n", 15); // "1" завершается, затем 2..5, 6, {, a
+  receive(h, "b\nc\nd\n}\n89\n", 11);        // b c d } -> flush динамического, 89
+  disconnect(h);                   // flush статического блока с 89
+  disconnect(h2);                  // flush h2: bulk: 1
+
+  const std::vector<std::string> expected = {
+      "bulk: 1, 2, 3, 4, 5", //
+      "bulk: 6",              //
+      "bulk: a, b, c, d",     //
+      "bulk: 89",             //
+      "bulk: 1",              //
+  };
+  EXPECT_EQ(bulk_lines(), expected); // один поток-производитель -> строгий порядок
+
+  // По файлу на каждый блок с тем же содержимым.
+  auto files = log_file_contents();
+  ASSERT_EQ(files.size(), expected.size());
+  std::sort(files.begin(), files.end());
+  auto sorted_expected = expected;
+  std::sort(sorted_expected.begin(), sorted_expected.end());
+  EXPECT_EQ(files, sorted_expected);
+  for (const auto &n : log_file_names()) {
+    EXPECT_TRUE(is_valid_log_name(n)) << n;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Файлы: каждый блок -> ровно один файл (в т.ч. два блока за одну секунду
+//    не сливаются), содержимое файлов совпадает с консолью, имена уникальны.
+// ---------------------------------------------------------------------------
+TEST_F(MtFixture, AsyncFilesMatchBlocksOneFileEach) {
+  constexpr size_t kBlock = 3;
+  constexpr int kCommands = 12; // ровно 4 блока, без хвоста
+  const auto ctx = connect(kBlock);
+  for (int i = 0; i < kCommands; ++i) {
+    recv(ctx, "c" + std::to_string(i));
+  }
+  disconnect(ctx);
+
+  std::vector<std::string> expected_lines;
+  for (int b = 0; b < kCommands / static_cast<int>(kBlock); ++b) {
+    std::string line = "bulk: ";
+    for (int c = 0; c < static_cast<int>(kBlock); ++c) {
+      if (c != 0) {
+        line += ", ";
+      }
+      line += "c" + std::to_string(b * static_cast<int>(kBlock) + c);
+    }
+    expected_lines.push_back(line);
+  }
+  EXPECT_EQ(bulk_lines(), expected_lines); // консоль в порядке отправки
+
+  const auto files = log_file_contents();
+  ASSERT_EQ(files.size(), expected_lines.size()); // файл на блок, слияний нет
+  auto sorted_files = files;
+  std::sort(sorted_files.begin(), sorted_files.end());
+  auto sorted_expected = expected_lines;
+  std::sort(sorted_expected.begin(), sorted_expected.end());
+  EXPECT_EQ(sorted_files, sorted_expected);
+
+  int total = 0;
+  for (const auto &f : files) {
+    total += static_cast<int>(parse_line(f).size());
+  }
+  EXPECT_EQ(total, kCommands); // команды не потеряны и не задвоены
+
+  const auto names = log_file_names();
+  auto sorted_names = names;
+  std::sort(sorted_names.begin(), sorted_names.end());
+  EXPECT_EQ(std::adjacent_find(sorted_names.begin(), sorted_names.end()), sorted_names.end())
+      << "duplicate file names";
+  for (const auto &n : names) {
+    EXPECT_TRUE(is_valid_log_name(n)) << n;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Большой объём без пауз: 100 блоков подряд (наверняка несколько за одну
+//    секунду) — файлов ровно по числу блоков, команды сохраняются, и оба
+//    файловых потока реально пишут (постфиксы "1" и "2"). Распределение
+//    между потоками недетерминировано, поэтому присутствие обоих постфиксов
+//    проверяем на объёме, где вероятность «всё ушло одному» исчезающе мала.
+// ---------------------------------------------------------------------------
+TEST_F(MtFixture, AsyncLargeVolumeBothFileThreadsWrite) {
+  constexpr size_t kBlock = 2;
+  constexpr int kCommands = 200; // ровно 100 блоков
+  const auto ctx = connect(kBlock);
+  for (int i = 0; i < kCommands; ++i) {
+    recv(ctx, "x" + std::to_string(i));
+  }
+  disconnect(ctx);
+
+  EXPECT_EQ(bulk_lines().size(), static_cast<size_t>(kCommands / kBlock));
+
+  const auto names = log_file_names();
+  ASSERT_EQ(names.size(), static_cast<size_t>(kCommands / kBlock)); // файл на блок
+
+  int total = 0;
+  std::unordered_set<std::string> postfixes;
+  for (const auto &n : names) {
+    EXPECT_TRUE(is_valid_log_name(n)) << n;
+    postfixes.insert(log_name_postfix(n));
+  }
+  EXPECT_GE(postfixes.size(), 2u) << "expected both file threads to write";
+  EXPECT_TRUE(postfixes.contains("1")) << "postfix 1 absent";
+  EXPECT_TRUE(postfixes.contains("2")) << "postfix 2 absent";
+
+  for (const auto &content : log_file_contents()) {
+    total += static_cast<int>(parse_line(content).size());
+  }
+  EXPECT_EQ(total, kCommands); // без потерь и дублей
 }

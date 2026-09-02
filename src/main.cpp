@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
   std::string s;
   while (std::getline(std::cin, s)) {
     receive(p, s.c_str(), s.size());
+    receive(p, "\n", 1);
   }
   disconnect(p);
 

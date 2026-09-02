@@ -27,6 +27,18 @@ jobs:
       - name: Package
         run: cmake --build build --target package
 
+      - name: Verify installed library (external linking smoke test)
+        run: |
+          cmake --install build --prefix /tmp/otus-stage
+          cd /tmp && rm -f bulk*.log
+          g++ -std=c++23 -Wall -Wextra -pedantic -Werror \
+            -I/tmp/otus-stage/include "$GITHUB_WORKSPACE/examples/external_async/main.cpp" \
+            -L/tmp/otus-stage/lib -lasync -Wl,-rpath,/tmp/otus-stage/lib -o external_async
+          ./external_async > ext.out
+          printf 'bulk: 1, 2, 3, 4, 5\nbulk: 6\nbulk: a, b, c, d\nbulk: 89\nbulk: 1\n' > ext.expected
+          diff ext.out ext.expected
+          test "$(ls bulk*.log | wc -l)" -eq 5
+
       - name: Get Package Filename
         id: package
         run: echo "deb=$(find build -name '*.deb' -exec basename {} \; | tail -n 1)" >> $GITHUB_OUTPUT

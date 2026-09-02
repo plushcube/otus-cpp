@@ -11,13 +11,35 @@ Parser::Parser(std::weak_ptr<DI_Container> di, const size_t &n) {
     throw std::runtime_error("DI container expired!");
   }
   p_provider = locked->collector_provider(n);
+  p_dispatcher = locked->dispatcher();
 }
 
-void Parser::add_processor(std::shared_ptr<Processor> p) { p_processors.push_back(p); }
+void Parser::feed(const char *data, const size_t size) {
+  m_input.append(data, size);
 
-void Parser::start() noexcept {}
+  // Разбираем все завершённые строки; хвост без '\n' остаётся в m_input.
+  std::size_t consumed = 0;
+  for (;;) {
+    const std::size_t nl = m_input.find('\n', consumed);
+    if (nl == std::string::npos) {
+      break;
+    }
+    std::string line = m_input.substr(consumed, nl - consumed);
+    consumed = nl + 1;
 
-void Parser::process(const std::string &s) const noexcept {
+    if (!line.empty() && line.back() == '\r') { // допустим CRLF
+      line.pop_back();
+    }
+    if (!line.empty()) {
+      process(line);
+    }
+  }
+  if (consumed != 0) {
+    m_input.erase(0, consumed);
+  }
+}
+
+void Parser::process(const std::string &s) noexcept {
   const Command cmd = CommandBuilder::make_command(s);
 
   switch (cmd.type) {
@@ -52,9 +74,21 @@ void Parser::process(const std::string &s) const noexcept {
   }
 }
 
-void Parser::stop() const noexcept { flush(); }
+void Parser::stop() noexcept {
+  if (!m_input.empty()) {
+    std::string tail = std::move(m_input);
+    m_input.clear();
+    if (tail.back() == '\r') {
+      tail.pop_back();
+    }
+    if (!tail.empty()) {
+      process(tail);
+    }
+  }
+  flush();
+}
 
-void Parser::flush() const noexcept {
+void Parser::flush() noexcept {
   const auto collector = p_provider->collector();
   const Collector::Bulk bulk = collector->flush();
 
@@ -62,7 +96,5 @@ void Parser::flush() const noexcept {
     return;
   }
 
-  for (const auto &p : p_processors) {
-    p->process(bulk);
-  }
+  p_dispatcher->dispatch(bulk);
 }
