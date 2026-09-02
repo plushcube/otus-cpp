@@ -3,6 +3,9 @@
 #include <memory>
 #include <stddef.h>
 
+class Scheduler;
+class Dispatcher;
+
 class Saver;
 class DynamicCollector;
 class StaticCollector;
@@ -11,6 +14,9 @@ class CollectorProvider;
 class DI_Container {
 public:
   virtual ~DI_Container() = default;
+
+  virtual std::shared_ptr<Scheduler> scheduler() noexcept = 0;
+  virtual std::shared_ptr<Dispatcher> dispatcher() noexcept = 0;
 
   virtual std::shared_ptr<Saver> saver() noexcept = 0;
   virtual std::shared_ptr<DynamicCollector> dynamic_collector() noexcept = 0;

@@ -6,15 +6,16 @@ endif()
 
 option(WITH_TESTS "Whether to build tests" ON)
 
-# ThreadSanitizer build: cmake -B build-tsan -DASYNC_TSAN=ON
-# Ловит data race детерминированно (см. test_async_mt.cpp).
+# ThreadSanitizer build: cmake -B build-tsan -DASYNC_TSAN=ON Ловит data race
+# детерминированно (см. test_async_mt.cpp).
 option(ASYNC_TSAN "Build with ThreadSanitizer" OFF)
 if(ASYNC_TSAN)
   add_compile_options(-fsanitize=thread -fno-omit-frame-pointer -g)
   add_link_options(-fsanitize=thread)
 endif()
 
-add_library(async SHARED "src/async.cpp" "src/parser.cpp" "src/scheduler.cpp")
+add_library(async SHARED "src/async.cpp" "src/dispatcher.cpp" "src/parser.cpp"
+                         "src/scheduler.cpp")
 
 add_library(async::async ALIAS async)
 
@@ -72,7 +73,8 @@ if(WITH_TESTS)
     target_compile_options(test_async_mt PRIVATE /W4)
   else()
     target_compile_options(test_async PRIVATE -Wall -Wextra -pedantic -Werror)
-    target_compile_options(test_async_mt PRIVATE -Wall -Wextra -pedantic -Werror)
+    target_compile_options(test_async_mt PRIVATE -Wall -Wextra -pedantic
+                                                 -Werror)
   endif()
 
   include(GoogleTest)
