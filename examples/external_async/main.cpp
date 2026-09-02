@@ -15,7 +15,7 @@
 // Сборка против установленной библиотеки (например, после cmake --install
 // с префиксом <prefix>):
 //
-//   c++ -std=c++23 -I<prefix>/include main.cpp -L<prefix>/lib -lasync \
+//   c++ -std=c++23 -I<prefix>/include main.cpp -L<prefix>/lib -lasync
 //       -Wl,-rpath,<prefix>/lib -o external_async
 
 #include <async/async.h>
