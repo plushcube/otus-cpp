@@ -1,31 +1,34 @@
 #pragma once
 
-#include <atomic>
+#include <mutex>
 #include <thread>
 
 #include <async/queue.h>
 #include <collector/collector.h>
+#include <processor/printer.h>
+#include <processor/saver.h>
 
 class Dispatcher {
 public:
-  explicit Dispatcher() {};
-
   void start();
   void stop();
   void dispatch(const Collector::Bulk &);
 
 private:
-  std::atomic<int> m_context_count{0};
-  std::atomic<bool> m_started{false};
+  void worker_log();
+  void worker_file(const Saver &saver);
+
+  std::mutex m_lifecycle; // сериализует порождение/join воркеров
+  int m_context_count{0}; // под m_lifecycle
 
   std::thread m_log_thread;
   std::thread m_file1_thread;
   std::thread m_file2_thread;
 
-  BlockingQueue<Collector::Bulk> m_file_queue{};
   BlockingQueue<Collector::Bulk> m_log_queue{};
+  BlockingQueue<Collector::Bulk> m_file_queue{};
 
-  bool set_started(const bool &);
-  void worker_log();
-  void worker_file();
+  Printer m_printer;
+  Saver m_saver_file1{"1"};
+  Saver m_saver_file2{"2"};
 };

@@ -1,23 +1,29 @@
 #pragma once
 
+#include <cstdint>
 #include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "processor.h"
 
 class Saver : public Processor {
 public:
-  explicit Saver() = default;
+  explicit Saver(std::string postfix = {}) : m_postfix(std::move(postfix)) {}
 
   void process(const Collector::Bulk &b) const noexcept override {
-    const auto filename = make_filename(b.start);
-    const auto content = make_content(b.commands);
-    save_to_file(content, filename);
+    try {
+      const auto content = make_content(b.commands);
+      save_to_file(content, make_filename(b.start));
+    } catch (const std::exception &e) {
+      std::cerr << "Saver: " << e.what() << std::endl;
+    }
   }
 
 private:
@@ -32,13 +38,26 @@ private:
     return s;
   }
 
-  std::string make_filename(const time_t &t) const noexcept {
-    return std::format("bulk{}.log", static_cast<uint64_t>(t));
+  std::string make_filename(const time_t &t) const {
+    const uint64_t ts = static_cast<uint64_t>(t);
+    const std::string base =
+        m_postfix.empty() ? std::format("bulk{}.log", ts) : std::format("bulk{}_{}.log", ts, m_postfix);
+    std::string name = base;
+    if (base == m_last_filename) {
+      name = m_postfix.empty() ? std::format("bulk{}_{}.log", ts, ++m_sequence)
+                               : std::format("bulk{}_{}_{}.log", ts, m_postfix, ++m_sequence);
+    } else {
+      m_sequence = 0;
+    }
+    m_last_filename = name;
+    return name;
   }
 
   void save_to_file(const std::string &c, const std::string &f) const {
-    // Параллельные контексты могут получить один timestamp и писать в один
-    // файл: open/append/close сериализуются, чтобы строки не перемешивались.
+    // Мьютекс временно остаётся: до переделки Parser::flush синхронный путь
+    // держит по Saver'у на контекст, и параллельные контексты за одну секунду
+    // пишут в один файл. Когда останутся только воркеры диспетчера (по одному
+    // Saver'у на поток, имена гарантированно различаются) — убрать.
     static std::mutex m;
     std::lock_guard lk(m);
     std::filesystem::path path = f;
@@ -49,4 +68,8 @@ private:
     out << c << std::endl;
     out.close();
   }
+
+  std::string m_postfix;
+  mutable std::string m_last_filename;
+  mutable unsigned m_sequence{0};
 };

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "processor.h"
 
 #include <iostream>

@@ -6,8 +6,6 @@ endif()
 
 option(WITH_TESTS "Whether to build tests" ON)
 
-# ThreadSanitizer build: cmake -B build-tsan -DASYNC_TSAN=ON Ловит data race
-# детерминированно (см. test_async_mt.cpp).
 option(ASYNC_TSAN "Build with ThreadSanitizer" OFF)
 if(ASYNC_TSAN)
   add_compile_options(-fsanitize=thread -fno-omit-frame-pointer -g)
@@ -16,6 +14,9 @@ endif()
 
 add_library(async SHARED "src/async.cpp" "src/dispatcher.cpp" "src/parser.cpp"
                          "src/scheduler.cpp")
+
+find_package(Threads REQUIRED)
+target_link_libraries(async PUBLIC Threads::Threads)
 
 add_library(async::async ALIAS async)
 
