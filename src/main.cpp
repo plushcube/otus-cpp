@@ -1,27 +1,57 @@
-#include <async/async.h>
+#include "bulk_server.h"
+
+#include <boost/asio.hpp>
+
+#include <csignal>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+
+namespace {
+
+unsigned long parse_uint(const std::string &s) {
+  std::size_t pos = 0;
+  const unsigned long v = std::stoul(s, &pos);
+  if (pos != s.size()) {
+    throw std::invalid_argument("not a number: " + s);
+  }
+  return v;
+}
+
+} // namespace
 
 int main(int argc, char **argv) {
-  size_t n = 3;
-  if (argc > 1) {
-    try {
-      n = std::max(1, static_cast<int>(std::stoull(argv[1])));
-    } catch (const std::invalid_argument &) {
-      std::cerr << "Error: argument '" << argv[1] << "' is not a number." << std::endl;
-      return 1;
-    } catch (const std::out_of_range &) {
-      std::cerr << "Error: number '" << argv[1] << "' is not valid." << std::endl;
-      return 1;
-    }
+  if (argc != 3) {
+    std::cerr << "Usage: bulk_server <port> <bulk_size>" << std::endl;
+    return 1;
   }
 
-  const auto p = connect(n);
-  std::string s;
-  while (std::getline(std::cin, s)) {
-    receive(p, s.c_str(), s.size());
-    receive(p, "\n", 1);
+  unsigned short port = 0;
+  size_t block_size = 0;
+  try {
+    port = static_cast<unsigned short>(parse_uint(argv[1]));
+    block_size = parse_uint(argv[2]);
+  } catch (const std::exception &) {
+    std::cerr << "Usage: bulk_server <port> <bulk_size>" << std::endl;
+    return 1;
   }
-  disconnect(p);
+
+  if (port == 0 || block_size == 0) {
+    std::cerr << "Usage: bulk_server <port> <bulk_size>" << std::endl;
+    return 1;
+  }
+
+  try {
+    AsyncServer server(port, block_size);
+
+    boost::asio::signal_set signals(server.io_context(), SIGINT, SIGTERM);
+    signals.async_wait([&server](const boost::system::error_code &, int) { server.stop(); });
+
+    server.run();
+  } catch (const std::exception &e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
 
   return 0;
 }

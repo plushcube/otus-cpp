@@ -1,5 +1,7 @@
 #pragma once
 
+#include <async/async.h>
+
 #include <mutex>
 #include <thread>
 
@@ -8,7 +10,9 @@
 #include <processor/printer.h>
 #include <processor/saver.h>
 
-class Dispatcher {
+// Экспортируется из libasync: bulk_server (задание 10) владеет собственным
+// экземпляром Dispatcher и вызывает его методы напрямую, минуя API async.h.
+class ASYNC_API Dispatcher {
 public:
   void start();
   void stop();

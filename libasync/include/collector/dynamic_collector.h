@@ -10,6 +10,9 @@ public:
       ++m_depth;
       break;
     case Command::Type::BlockEnd:
+      if (m_depth == 0) {
+        break; // лишняя '}' — не уводим глубину в минус
+      }
       --m_depth;
       break;
     case Command::Type::Command:
