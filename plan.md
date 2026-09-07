@@ -17,7 +17,7 @@
 - `CMakeLists.txt` (корень): FetchContent(Boost), FetchContent(googletest) переносится сюда из libasync, таргеты `bulk_server` и `test_bulk_server`, имя пакета `bulk_server`;
 - `libasync/CMakeLists.txt`: убрать собственный FetchContent(googletest) (он становится общим в корне);
 - `src/main.cpp` — перерабатывается в точку входа сервера (парсинг `port bulk_size`);
-- новые: `src/bulk_server.h`, `src/bulk_server.cpp` (сервер, сессии, маршрутизатор блоков), `tests/test_bulk_server.cpp`;
+- новые: `src/async_server.{h,cpp}`, `src/session.{h,cpp}`, `src/bulk_router.{h,cpp}` (сервер, сессии, маршрутизатор блоков — по паре файлов на класс), `tests/test_bulk_server.cpp`;
 - `.github/workflows/release.yml` — шаг smoke-проверки сервера;
 - пример `examples/external_async/main.cpp` не трогаем (остаётся регрессией установки libasync).
 

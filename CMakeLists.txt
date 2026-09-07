@@ -44,7 +44,8 @@ FetchContent_MakeAvailable(boost)
 
 add_subdirectory(libasync)
 
-add_executable(${TASK_CLI} "src/main.cpp" "src/bulk_server.cpp")
+add_executable(${TASK_CLI} "src/main.cpp" "src/async_server.cpp" "src/session.cpp"
+                         "src/bulk_router.cpp")
 target_link_libraries(${TASK_CLI} PRIVATE async::async)
 target_include_directories(${TASK_CLI} SYSTEM PRIVATE "${boost_SOURCE_DIR}")
 
