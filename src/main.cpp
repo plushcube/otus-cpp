@@ -1,36 +1,55 @@
-#include <di/real_container.h>
-#include <processor/printer.h>
-#include <processor/saver.h>
+#include "join_server.h"
 
-#include <parser.h>
+#include <boost/asio/signal_set.hpp>
 
+#include <csignal>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+
+namespace {
+
+unsigned long parse_uint(const std::string &s) {
+  std::size_t pos = 0;
+  const unsigned long v = std::stoul(s, &pos);
+  if (pos != s.size()) {
+    throw std::invalid_argument("not a number: " + s);
+  }
+  return v;
+}
+
+} // namespace
 
 int main(int argc, char **argv) {
-  size_t n = 3;
-  if (argc > 1) {
-    try {
-      n = std::max(1, static_cast<int>(std::stoull(argv[1])));
-    } catch (const std::invalid_argument &) {
-      std::cerr << "Error: argument '" << argv[1] << "' is not a number." << std::endl;
-      return 1;
-    } catch (const std::out_of_range &) {
-      std::cerr << "Error: number '" << argv[1] << "' is not valid." << std::endl;
-      return 1;
-    }
+  if (argc != 2) {
+    std::cerr << "Usage: join_server <port>" << std::endl;
+    return 1;
   }
 
-  auto di = std::make_shared<RealContainer>();
-  Parser p(di, n);
-  p.add_processor(std::make_shared<Printer>());
-  p.add_processor(std::make_shared<Saver>());
-
-  std::string s;
-  p.start();
-  while (std::getline(std::cin, s)) {
-    p.process(s);
+  unsigned short port = 0;
+  try {
+    port = static_cast<unsigned short>(parse_uint(argv[1]));
+  } catch (const std::exception &) {
+    std::cerr << "Usage: join_server <port>" << std::endl;
+    return 1;
   }
-  p.stop();
+
+  if (port == 0) {
+    std::cerr << "Usage: join_server <port>" << std::endl;
+    return 1;
+  }
+
+  try {
+    JoinServer server(port);
+
+    boost::asio::signal_set signals(server.io_context(), SIGINT, SIGTERM);
+    signals.async_wait([&server](const boost::system::error_code &, int) { server.stop(); });
+
+    server.run();
+  } catch (const std::exception &e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
 
   return 0;
 }
