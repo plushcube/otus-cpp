@@ -60,6 +60,23 @@ endif()
 
 install(TARGETS ${TASK_CLI} RUNTIME DESTINATION bin)
 
+if(WITH_TESTS)
+  add_executable(test_bulk_server "tests/test_bulk_server.cpp" "src/async_server.cpp"
+                                 "src/session.cpp" "src/bulk_router.cpp")
+  target_link_libraries(test_bulk_server PRIVATE GTest::gtest_main async::async)
+  target_include_directories(test_bulk_server PRIVATE "src")
+  target_include_directories(test_bulk_server SYSTEM PRIVATE "${boost_SOURCE_DIR}")
+
+  if(MSVC)
+    target_compile_options(test_bulk_server PRIVATE /W4)
+  else()
+    target_compile_options(test_bulk_server PRIVATE -Wall -Wextra -pedantic -Werror)
+  endif()
+
+  include(GoogleTest)
+  gtest_discover_tests(test_bulk_server)
+endif()
+
 set(CPACK_GENERATOR DEB)
 set(CPACK_PACKAGE_NAME "bulk_server")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
