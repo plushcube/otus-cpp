@@ -19,6 +19,6 @@
 
 using ContextID = size_t;
 
-ASYNC_API ContextID connect(const size_t &block_size);
-ASYNC_API void receive(const ContextID &cid, const char *buffer, const size_t &size);
-ASYNC_API void disconnect(const ContextID &cid);
+ASYNC_API ContextID connect(const size_t block_size);
+ASYNC_API void receive(const ContextID cid, const char *buffer, const size_t size);
+ASYNC_API void disconnect(const ContextID cid);

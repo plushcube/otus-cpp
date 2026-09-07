@@ -20,9 +20,9 @@ public:
 
   explicit Scheduler(std::shared_ptr<DI_Container> di) : p_di(di), p_gcd(di->dispatcher()) {};
 
-  Task start_task(const size_t &);
-  void stop_task(const ID &);
-  std::shared_ptr<Parser> get_value(const ID &id);
+  Task start_task(const size_t);
+  void stop_task(const ID);
+  std::shared_ptr<Parser> get_value(const ID id);
 
 private:
   std::shared_ptr<DI_Container> p_di;

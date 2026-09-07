@@ -5,7 +5,7 @@
 #include <commands/cmd_builder.h>
 #include <commands/command.h>
 
-Parser::Parser(std::weak_ptr<DI_Container> di, const size_t &n) {
+Parser::Parser(std::weak_ptr<DI_Container> di, const size_t n) {
   auto locked = di.lock();
   if (!locked) {
     throw std::runtime_error("DI container expired!");

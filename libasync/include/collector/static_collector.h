@@ -6,7 +6,7 @@
 
 class StaticCollector : public Collector {
 public:
-  StaticCollector(const size_t &n) : m_max(n) {}
+  StaticCollector(const size_t n) : m_max(n) {}
 
   bool collect(const Command &c) noexcept override {
     if (is_full() || c.type != Command::Type::Command) {

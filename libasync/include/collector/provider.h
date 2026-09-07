@@ -10,7 +10,7 @@
 
 class CollectorProvider {
 public:
-  explicit CollectorProvider(std::weak_ptr<DI_Container> di, const size_t &n) {
+  explicit CollectorProvider(std::weak_ptr<DI_Container> di, const size_t n) {
     auto locked = di.lock();
     if (!locked) {
       throw std::runtime_error("DI container expired!");

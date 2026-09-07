@@ -37,7 +37,7 @@ private:
     return s;
   }
 
-  std::string make_filename(const time_t &t) const {
+  std::string make_filename(const time_t t) const {
     const uint64_t ts = static_cast<uint64_t>(t);
     const std::string base =
         m_postfix.empty() ? std::format("bulk{}.log", ts) : std::format("bulk{}_{}.log", ts, m_postfix);

@@ -10,7 +10,7 @@
 
 class Parser {
 public:
-  explicit Parser(std::weak_ptr<DI_Container>, const size_t &);
+  explicit Parser(std::weak_ptr<DI_Container>, const size_t);
 
   void feed(const char *data, const size_t size);
   void stop() noexcept;
