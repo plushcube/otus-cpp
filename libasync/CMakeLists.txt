@@ -46,8 +46,6 @@ install(
 install(FILES include/async/async.h DESTINATION include/async)
 
 if(WITH_TESTS)
-  # googletest подключается выше по дереву (корневой CMakeLists.txt),
-  # здесь остаются только тесты библиотеки.
   enable_testing()
 
   add_executable(test_async tests/test_async.cpp)

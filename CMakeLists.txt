@@ -17,15 +17,11 @@ set(TASK_CLI "bulk_server")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
-# Должен вызываться до add_subdirectory, иначе поддиректории обрабатываются с
-# testing=OFF и их тесты не регистрируются в ctest
 if(WITH_TESTS)
   enable_testing()
 
   include(FetchContent)
 
-  # googletest подключается на уровне корня: так его таргеты видны и тестам
-  # libasync, и тестам bulk_server (задание 10).
   FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip)
@@ -40,15 +36,10 @@ if(WITH_TESTS)
   FetchContent_MakeAvailable(googletest)
 endif()
 
-# Boost.Asio для bulk_server (задание 10) подключается через FetchContent,
-# чтобы сборка не зависела от системных установок Boost. В исходном архиве
-# Boost нет корневого CMakeLists.txt, поэтому MakeAvailable только распакует
-# его; таргеты получат include-путь ${boost_SOURCE_DIR} (Asio header-only,
-# линковка не нужна). URL_HASH можно зафиксировать позже по SHA256 архива.
 include(FetchContent)
 FetchContent_Declare(
   boost
-  URL https://archives.boost.io/release/1.92.0/source/boost_1_92_0.tar.gz)
+  URL https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-b2-nodocs.tar.gz)
 FetchContent_MakeAvailable(boost)
 
 add_subdirectory(libasync)
