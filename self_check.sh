@@ -27,5 +27,9 @@ if ! ctest --test-dir .build -R MtFixture --repeat until-fail:20 --output-on-fai
     echo "❌ Stability check failed."
     exit 1
 fi
+if ! ctest --test-dir .build -R BulkServerFixture --repeat until-fail:20 --output-on-failure >/dev/null; then
+    echo "❌ Server stability check failed."
+    exit 1
+fi
 
 echo "✅ Self-check completed successfully."
