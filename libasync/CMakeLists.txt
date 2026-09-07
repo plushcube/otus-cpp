@@ -46,22 +46,9 @@ install(
 install(FILES include/async/async.h DESTINATION include/async)
 
 if(WITH_TESTS)
+  # googletest подключается выше по дереву (корневой CMakeLists.txt),
+  # здесь остаются только тесты библиотеки.
   enable_testing()
-
-  include(FetchContent)
-
-  FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip)
-
-  if(MSVC)
-    set(gtest_force_shared_crt
-        ON
-        CACHE BOOL "" FORCE)
-  endif()
-
-  set(INSTALL_GTEST OFF)
-  FetchContent_MakeAvailable(googletest)
 
   add_executable(test_async tests/test_async.cpp)
   target_link_libraries(test_async PRIVATE GTest::gtest_main async::async)
