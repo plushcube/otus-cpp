@@ -15,6 +15,8 @@ project("join_server" VERSION ${PROJECT_VERSION})
 
 set(TASK_SERVER "join_server")
 set(TASK_CLIENT "join_client")
+set(TASK_TEST_STORAGE "test_join_storage")
+set(TASK_TEST_SERVER "test_join_server")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
@@ -67,23 +69,23 @@ set(CPACK_PACKAGE_CONTACT "https://t.me/plushcube")
 include(CPack)
 
 if(WITH_TESTS)
-  add_executable(test_join_storage "tests/test_join_storage.cpp")
-  target_link_libraries(test_join_storage PRIVATE GTest::gtest_main join::join)
+  add_executable(${TASK_TEST_STORAGE} "tests/test_join_storage.cpp")
+  target_link_libraries(${TASK_TEST_STORAGE} PRIVATE GTest::gtest_main join::join)
 
-  add_executable(test_join_server "tests/test_join_server.cpp")
-  target_link_libraries(test_join_server PRIVATE GTest::gtest_main join::join)
+  add_executable(${TASK_TEST_SERVER} "tests/test_join_server.cpp")
+  target_link_libraries(${TASK_TEST_SERVER} PRIVATE GTest::gtest_main join::join)
 
   if(MSVC)
-    target_compile_options(test_join_storage PRIVATE /W4)
-    target_compile_options(test_join_server PRIVATE /W4)
+    target_compile_options(${TASK_TEST_STORAGE} PRIVATE /W4)
+    target_compile_options(${TASK_TEST_SERVER} PRIVATE /W4)
   else()
-    target_compile_options(test_join_storage PRIVATE -Wall -Wextra -pedantic
+    target_compile_options(${TASK_TEST_STORAGE} PRIVATE -Wall -Wextra -pedantic
                                                      -Werror)
-    target_compile_options(test_join_server PRIVATE -Wall -Wextra -pedantic
+    target_compile_options(${TASK_TEST_SERVER} PRIVATE -Wall -Wextra -pedantic
                                                     -Werror)
   endif()
 
   include(GoogleTest)
-  gtest_discover_tests(test_join_storage)
-  gtest_discover_tests(test_join_server)
+  gtest_discover_tests(${TASK_TEST_STORAGE})
+  gtest_discover_tests(${TASK_TEST_SERVER})
 endif()
