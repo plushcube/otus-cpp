@@ -36,17 +36,10 @@ if(WITH_TESTS)
   FetchContent_MakeAvailable(googletest)
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-  boost
-  URL https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-b2-nodocs.tar.gz)
-FetchContent_MakeAvailable(boost)
+add_subdirectory(libjoin)
 
-add_executable(${TASK_CLI} "src/main.cpp" "src/join_server.cpp" "src/session.cpp"
-                         "src/join_storage.cpp" "src/command_executor.cpp")
-target_include_directories(${TASK_CLI} SYSTEM PRIVATE "${boost_SOURCE_DIR}")
-
-find_package(Threads REQUIRED)
+add_executable(${TASK_CLI} "src/main.cpp")
+target_link_libraries(${TASK_CLI} PRIVATE join::join)
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
@@ -68,16 +61,11 @@ set(CPACK_PACKAGE_CONTACT "https://t.me/plushcube")
 include(CPack)
 
 if(WITH_TESTS)
-  add_executable(test_join_storage "tests/test_join_storage.cpp" "src/join_storage.cpp")
-  target_link_libraries(test_join_storage PRIVATE GTest::gtest_main)
-  target_include_directories(test_join_storage PRIVATE "src")
+  add_executable(test_join_storage "tests/test_join_storage.cpp")
+  target_link_libraries(test_join_storage PRIVATE GTest::gtest_main join::join)
 
-  add_executable(test_join_server "tests/test_join_server.cpp" "src/join_server.cpp"
-                                  "src/session.cpp" "src/join_storage.cpp"
-                                  "src/command_executor.cpp")
-  target_link_libraries(test_join_server PRIVATE GTest::gtest_main Threads::Threads)
-  target_include_directories(test_join_server PRIVATE "src")
-  target_include_directories(test_join_server SYSTEM PRIVATE "${boost_SOURCE_DIR}")
+  add_executable(test_join_server "tests/test_join_server.cpp")
+  target_link_libraries(test_join_server PRIVATE GTest::gtest_main join::join)
 
   if(MSVC)
     target_compile_options(test_join_storage PRIVATE /W4)
