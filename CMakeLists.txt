@@ -43,7 +43,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(boost)
 
 add_executable(${TASK_CLI} "src/main.cpp" "src/join_server.cpp" "src/session.cpp"
-                         "src/join_storage.cpp")
+                         "src/join_storage.cpp" "src/command_executor.cpp")
 target_include_directories(${TASK_CLI} SYSTEM PRIVATE "${boost_SOURCE_DIR}")
 
 find_package(Threads REQUIRED)
@@ -73,7 +73,8 @@ if(WITH_TESTS)
   target_include_directories(test_join_storage PRIVATE "src")
 
   add_executable(test_join_server "tests/test_join_server.cpp" "src/join_server.cpp"
-                                  "src/session.cpp" "src/join_storage.cpp")
+                                  "src/session.cpp" "src/join_storage.cpp"
+                                  "src/command_executor.cpp")
   target_link_libraries(test_join_server PRIVATE GTest::gtest_main Threads::Threads)
   target_include_directories(test_join_server PRIVATE "src")
   target_include_directories(test_join_server SYSTEM PRIVATE "${boost_SOURCE_DIR}")

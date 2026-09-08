@@ -9,8 +9,11 @@ using namespace boost::asio::ip;
 JoinServer::JoinServer(unsigned short port)
     : m_acceptor(m_io, tcp::endpoint(tcp::v4(), port)), m_port(m_acceptor.local_endpoint().port()) {
   m_acceptor.listen();
+  m_executor.start(2);
   do_accept();
 }
+
+JoinServer::~JoinServer() { m_executor.stop(); }
 
 void JoinServer::stop() {
   boost::asio::post(m_io, [this] {
@@ -24,7 +27,7 @@ void JoinServer::stop() {
 void JoinServer::do_accept() {
   m_acceptor.async_accept([this](boost::system::error_code ec, tcp::socket socket) {
     if (!ec) {
-      auto session = std::make_shared<Session>(std::move(socket), m_storage, *this);
+      auto session = std::make_shared<Session>(std::move(socket), m_storage, m_executor, m_io, *this);
       m_sessions.insert(session);
       session->start();
     }

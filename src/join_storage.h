@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ private:
   std::string intersection() const;
   std::string symmetric_difference() const;
 
+  mutable std::mutex m_mutex;
   Table m_a;
   Table m_b;
 };

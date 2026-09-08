@@ -28,6 +28,8 @@ std::string join_reply(const std::vector<std::string> &rows) {
 } // namespace
 
 std::string JoinStorage::execute(const std::string &line) {
+  std::lock_guard lk(m_mutex);
+
   const auto tokens = split(line);
   if (tokens.empty()) {
     return "OK\n";

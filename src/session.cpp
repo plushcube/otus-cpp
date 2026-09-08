@@ -1,46 +1,59 @@
 #include "session.h"
 
+#include "command_executor.h"
 #include "join_server.h"
 #include "join_storage.h"
 
 #include <boost/asio/buffers_iterator.hpp>
 
 #include <algorithm>
+#include <string>
 #include <utility>
 
-Session::Session(Socket socket, JoinStorage &storage, JoinServer &server)
-    : m_socket(std::move(socket)), m_storage(storage), m_server(server) {}
+Session::Session(Socket socket, JoinStorage &storage, CommandExecutor &executor, Context &io,
+                 JoinServer &server)
+    : m_socket(std::move(socket)), m_storage(storage), m_executor(executor), m_io(io),
+      m_server(server) {}
 
 void Session::do_read() {
   auto self = shared_from_this();
   boost::asio::async_read_until(m_socket, m_buf, '\n', [this, self](boost::system::error_code ec, std::size_t) {
-    if (!ec) {
-      handle_lines();
-      do_write();
-    } else {
+    if (ec) {
       finish(ec);
+      return;
     }
+
+    std::string command = take_line();
+    if (command.empty()) {
+      do_read();
+      return;
+    }
+
+    m_executor.submit([this, self, command] {
+      const std::string reply = m_storage.execute(command);
+      boost::asio::post(m_io, [this, self, reply] { deliver(reply); });
+    });
   });
 }
 
-void Session::handle_lines() {
-  for (;;) {
-    const auto begin = boost::asio::buffers_begin(m_buf.data());
-    const auto end = boost::asio::buffers_end(m_buf.data());
-    const auto nl = std::find(begin, end, '\n');
-    if (nl == end) {
-      break;
-    }
-    std::string line(begin, nl);
-    m_buf.consume(static_cast<std::size_t>(std::distance(begin, nl)) + 1);
-    if (!line.empty() && line.back() == '\r') {
-      line.pop_back();
-    }
-    if (!line.empty()) {
-      std::fprintf(stderr, "SESS-LINE: [%s]\n", line.c_str());
-      m_outbox += m_storage.execute(line);
-    }
+std::string Session::take_line() {
+  const auto begin = boost::asio::buffers_begin(m_buf.data());
+  const auto end = boost::asio::buffers_end(m_buf.data());
+  const auto nl = std::find(begin, end, '\n');
+  if (nl == end) {
+    return {};
   }
+  std::string line(begin, nl);
+  m_buf.consume(static_cast<std::size_t>(std::distance(begin, nl)) + 1);
+  if (!line.empty() && line.back() == '\r') {
+    line.pop_back();
+  }
+  return line;
+}
+
+void Session::deliver(const std::string &reply) {
+  m_outbox = reply;
+  do_write();
 }
 
 void Session::do_write() {

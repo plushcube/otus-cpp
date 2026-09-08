@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 
+#include "command_executor.h"
 #include "join_storage.h"
 
 class Session;
@@ -15,6 +16,7 @@ public:
   using Acceptor = boost::asio::ip::tcp::acceptor;
 
   JoinServer(unsigned short port);
+  ~JoinServer();
 
   void run() { m_io.run(); }
   void stop();
@@ -30,6 +32,7 @@ private:
   Context m_io;
   Acceptor m_acceptor;
   JoinStorage m_storage;
+  CommandExecutor m_executor;
   std::set<std::shared_ptr<Session>> m_sessions;
   unsigned short m_port;
 };

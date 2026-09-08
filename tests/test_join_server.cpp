@@ -178,3 +178,113 @@ TEST_F(JoinServerFixture, UnknownCommandReturnsError) {
   EXPECT_EQ(send_command(sock, "DROP A"), "ERR unknown command\n");
   EXPECT_EQ(send_command(sock, "INSERT"), "ERR invalid arguments\n");
 }
+
+TEST_F(JoinServerFixture, LargeOperationDoesNotBlockOtherClients) {
+  constexpr int kCount = 2000;
+  boost::asio::io_context io;
+  auto seeder = connect(io);
+  boost::asio::streambuf seed_buf;
+
+  std::string batch;
+  for (int i = 0; i < kCount; ++i) {
+    batch += "INSERT A " + std::to_string(i) + " a" + std::to_string(i) + "\n";
+  }
+  for (int i = 0; i < kCount; ++i) {
+    batch += "INSERT B " + std::to_string(i) + " b" + std::to_string(i) + "\n";
+  }
+  boost::asio::write(seeder, boost::asio::buffer(batch));
+  for (int i = 0; i < 2 * kCount; ++i) {
+    EXPECT_EQ(read_line(seeder, seed_buf), "OK");
+  }
+
+  boost::asio::io_context io_slow;
+  auto slow = connect(io_slow);
+  boost::asio::write(slow, boost::asio::buffer(std::string("INTERSECTION\n")));
+  boost::asio::streambuf slow_buf;
+  EXPECT_EQ(read_line(slow, slow_buf), "0,a0,b0");
+
+  boost::asio::io_context io_fast;
+  auto fast = connect(io_fast);
+  EXPECT_EQ(send_command(fast, "INSERT A 5000 five"), "OK\n");
+  EXPECT_EQ(send_command(fast, "SYMMETRIC_DIFFERENCE"), "5000,five,\nOK\n");
+  boost::asio::streambuf fast_buf;
+  boost::asio::write(fast, boost::asio::buffer(std::string("INSERT A 5001 six\n")));
+  EXPECT_EQ(read_line(fast, fast_buf), "OK");
+
+  std::string tail;
+  int rows = 1;
+  for (;;) {
+    const std::string line = read_line(slow, slow_buf);
+    if (line == "OK") {
+      break;
+    }
+    ++rows;
+    tail = line;
+  }
+  EXPECT_EQ(rows, kCount);
+  EXPECT_EQ(tail, std::to_string(kCount - 1) + ",a" + std::to_string(kCount - 1) + ",b" +
+                      std::to_string(kCount - 1));
+
+  EXPECT_EQ(send_command(fast, "SYMMETRIC_DIFFERENCE"), "5000,five,\n5001,six,\nOK\n");
+}
+
+TEST_F(JoinServerFixture, ConcurrentClientsSurviveLargeIntersection) {
+  constexpr int kCount = 1500;
+  boost::asio::io_context io;
+  auto seeder = connect(io);
+  boost::asio::streambuf seed_buf;
+
+  std::string batch;
+  for (int i = 0; i < kCount; ++i) {
+    batch += "INSERT A " + std::to_string(i) + " x" + std::to_string(i) + "\n";
+  }
+  for (int i = 0; i < kCount; ++i) {
+    batch += "INSERT B " + std::to_string(i) + " y" + std::to_string(i) + "\n";
+  }
+  boost::asio::write(seeder, boost::asio::buffer(batch));
+  for (int i = 0; i < 2 * kCount; ++i) {
+    EXPECT_EQ(read_line(seeder, seed_buf), "OK");
+  }
+
+  auto query_worker = [this] {
+    boost::asio::io_context local_io;
+    auto sock = connect(local_io);
+    boost::asio::streambuf buf;
+    boost::asio::write(sock, boost::asio::buffer(std::string("INTERSECTION\n")));
+    int rows = 0;
+    for (;;) {
+      const std::string line = read_line(sock, buf);
+      if (line == "OK") {
+        break;
+      }
+      ++rows;
+    }
+    return rows;
+  };
+
+  auto write_worker = [this] {
+    boost::asio::io_context local_io;
+    auto sock = connect(local_io);
+    boost::asio::streambuf buf;
+    for (int i = 0; i < 100; ++i) {
+      const int id = 100000 + i;
+      boost::asio::write(sock, boost::asio::buffer("INSERT B " + std::to_string(id) + " z\n"));
+      EXPECT_EQ(read_line(sock, buf), "OK");
+    }
+  };
+
+  std::thread query(query_worker);
+  std::thread writer(write_worker);
+  query.join();
+  writer.join();
+
+  boost::asio::io_context io2;
+  auto sock = connect(io2);
+  const std::string reply = send_command(sock, "SYMMETRIC_DIFFERENCE");
+  std::string expected;
+  for (int i = 100000; i < 100100; ++i) {
+    expected += std::to_string(i) + ",,z\n";
+  }
+  expected += "OK\n";
+  EXPECT_EQ(reply, expected);
+}
