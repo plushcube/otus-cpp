@@ -2,6 +2,7 @@
 
 #include <set>
 #include <sstream>
+#include <vector>
 
 namespace {
 
@@ -137,8 +138,7 @@ std::string JoinStorage::symmetric_difference() const {
     if (has_a && has_b) {
       continue;
     }
-    rows.push_back(std::to_string(id) + "," + (has_a ? in_a->second : "") + "," +
-                   (has_b ? in_b->second : ""));
+    rows.push_back(std::to_string(id) + "," + (has_a ? in_a->second : "") + "," + (has_b ? in_b->second : ""));
   }
   return join_reply(rows);
 }

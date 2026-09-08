@@ -3,7 +3,6 @@
 #include <map>
 #include <mutex>
 #include <string>
-#include <vector>
 
 class JoinStorage {
 public:
