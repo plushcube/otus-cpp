@@ -13,7 +13,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project("join_server" VERSION ${PROJECT_VERSION})
 
-set(TASK_CLI "join_server")
+set(TASK_SERVER "join_server")
+set(TASK_CLIENT "join_client")
 
 option(WITH_TESTS "Whether to build tests" ON)
 
@@ -38,22 +39,27 @@ endif()
 
 add_subdirectory(libjoin)
 
-add_executable(${TASK_CLI} "src/main.cpp")
-target_link_libraries(${TASK_CLI} PRIVATE join::join)
+add_executable(${TASK_SERVER} "src/join_server.cpp")
+target_link_libraries(${TASK_SERVER} PRIVATE join::join)
+
+add_executable(${TASK_CLIENT} "src/join_client.cpp")
+target_link_libraries(${TASK_CLIENT} PRIVATE join::join)
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
 
 if(MSVC)
-  target_compile_options(${TASK_CLI} PRIVATE /W4)
+  target_compile_options(${TASK_SERVER} PRIVATE /W4)
+  target_compile_options(${TASK_CLIENT} PRIVATE /W4)
 else()
-  target_compile_options(${TASK_CLI} PRIVATE -Wall -Wextra -pedantic -Werror)
+  target_compile_options(${TASK_SERVER} PRIVATE -Wall -Wextra -pedantic -Werror)
+  target_compile_options(${TASK_CLIENT} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()
 
-install(TARGETS ${TASK_CLI} RUNTIME DESTINATION bin)
+install(TARGETS ${TASK_SERVER} RUNTIME DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
-set(CPACK_PACKAGE_NAME "join_server")
+set(CPACK_PACKAGE_NAME ${TASK_SERVER})
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
