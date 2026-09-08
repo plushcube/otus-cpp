@@ -10,10 +10,8 @@
 #include <string>
 #include <utility>
 
-Session::Session(Socket socket, JoinStorage &storage, CommandExecutor &executor, Context &io,
-                 JoinServer &server)
-    : m_socket(std::move(socket)), m_storage(storage), m_executor(executor), m_io(io),
-      m_server(server) {}
+Session::Session(Socket socket, JoinStorage &storage, CommandExecutor &executor, Context &io, JoinServer &server)
+    : m_socket(std::move(socket)), m_storage(storage), m_executor(executor), m_io(io), m_server(server) {}
 
 void Session::do_read() {
   auto self = shared_from_this();
@@ -75,11 +73,13 @@ void Session::do_write() {
 
 void Session::finish(boost::system::error_code) {
   m_server.on_session_closed(this);
-  boost::system::error_code ignored;
-  m_socket.close(ignored);
+  boost::system::error_code ec;
+  m_socket.close(ec);
+  (void)ec;
 }
 
 void Session::close() {
-  boost::system::error_code ignored;
-  m_socket.close(ignored);
+  boost::system::error_code ec;
+  m_socket.close(ec);
+  (void)ec;
 }

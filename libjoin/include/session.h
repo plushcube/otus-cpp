@@ -15,8 +15,7 @@ public:
   using Socket = boost::asio::ip::tcp::socket;
   using Context = boost::asio::io_context;
 
-  Session(Socket socket, JoinStorage &storage, CommandExecutor &executor, Context &io,
-          JoinServer &server);
+  Session(Socket socket, JoinStorage &storage, CommandExecutor &executor, Context &io, JoinServer &server);
 
   void start() { do_read(); }
   void close();

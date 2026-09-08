@@ -161,9 +161,10 @@ TEST_F(JoinServerFixture, IncompleteCommandOnCloseIsNotExecuted) {
   boost::asio::io_context io;
   auto sock = connect(io);
   boost::asio::write(sock, boost::asio::buffer("INSERT A 5 five"));
-  boost::system::error_code ignored;
-  sock.shutdown(tcp::socket::shutdown_send, ignored);
-  sock.close(ignored);
+  boost::system::error_code ec;
+  sock.shutdown(tcp::socket::shutdown_send, ec);
+  sock.close(ec);
+  (void)ec;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

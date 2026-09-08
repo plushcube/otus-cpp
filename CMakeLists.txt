@@ -71,8 +71,10 @@ if(WITH_TESTS)
     target_compile_options(test_join_storage PRIVATE /W4)
     target_compile_options(test_join_server PRIVATE /W4)
   else()
-    target_compile_options(test_join_storage PRIVATE -Wall -Wextra -pedantic -Werror)
-    target_compile_options(test_join_server PRIVATE -Wall -Wextra -pedantic -Werror)
+    target_compile_options(test_join_storage PRIVATE -Wall -Wextra -pedantic
+                                                     -Werror)
+    target_compile_options(test_join_server PRIVATE -Wall -Wextra -pedantic
+                                                    -Werror)
   endif()
 
   include(GoogleTest)
