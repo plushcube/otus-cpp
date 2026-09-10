@@ -1,6 +1,6 @@
 #include "join_storage.h"
 
-#include <set>
+#include <algorithm>
 #include <vector>
 
 namespace {
@@ -121,34 +121,41 @@ std::string JoinStorage::truncate(TableId id) {
 
 std::string JoinStorage::intersection() const {
   std::vector<std::string> rows;
-  for (const auto &[id, name_a] : m_a) {
-    const auto it = m_b.find(id);
-    if (it != m_b.end()) {
-      rows.push_back(std::to_string(id) + "," + name_a + "," + it->second);
+  rows.reserve(std::min(m_a.size(), m_b.size()));
+
+  auto a = m_a.begin();
+  auto b = m_b.begin();
+  while (a != m_a.end() && b != m_b.end()) {
+    if (a->first < b->first) {
+      ++a;
+    } else if (b->first < a->first) {
+      ++b;
+    } else {
+      rows.push_back(std::to_string(a->first) + "," + a->second + "," + b->second);
+      ++a;
+      ++b;
     }
   }
   return join_reply(rows);
 }
 
 std::string JoinStorage::symmetric_difference() const {
-  std::set<int> ids;
-  for (const auto &entry : m_a) {
-    ids.insert(entry.first);
-  }
-  for (const auto &entry : m_b) {
-    ids.insert(entry.first);
-  }
-
   std::vector<std::string> rows;
-  for (const int id : ids) {
-    const auto in_a = m_a.find(id);
-    const auto in_b = m_b.find(id);
-    const bool has_a = in_a != m_a.end();
-    const bool has_b = in_b != m_b.end();
-    if (has_a && has_b) {
-      continue;
+  rows.reserve(m_a.size() + m_b.size());
+
+  auto a = m_a.begin();
+  auto b = m_b.begin();
+  while (a != m_a.end() || b != m_b.end()) {
+    if (b == m_b.end() || (a != m_a.end() && a->first < b->first)) {
+      rows.push_back(std::to_string(a->first) + "," + a->second + ",");
+      ++a;
+    } else if (a == m_a.end() || b->first < a->first) {
+      rows.push_back(std::to_string(b->first) + ",," + b->second);
+      ++b;
+    } else {
+      ++a;
+      ++b;
     }
-    rows.push_back(std::to_string(id) + "," + (has_a ? in_a->second : "") + "," + (has_b ? in_b->second : ""));
   }
   return join_reply(rows);
 }
