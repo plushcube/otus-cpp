@@ -1,20 +1,9 @@
 #include "join_storage.h"
 
 #include <set>
-#include <sstream>
 #include <vector>
 
 namespace {
-
-std::vector<std::string> split(const std::string &line) {
-  std::vector<std::string> out;
-  std::stringstream ss(line);
-  std::string tok;
-  while (ss >> tok) {
-    out.push_back(tok);
-  }
-  return out;
-}
 
 std::string join_reply(const std::vector<std::string> &rows) {
   std::string out;
@@ -31,37 +20,58 @@ std::string join_reply(const std::vector<std::string> &rows) {
 std::string JoinStorage::execute(const std::string &line) {
   std::lock_guard lk(m_mutex);
 
-  const auto tokens = split(line);
-  if (tokens.empty()) {
+  if (line.empty()) {
     return "OK\n";
   }
 
-  if (tokens[0] == "INSERT") {
-    TableId table{};
-    int id = 0;
-    if (tokens.size() != 4 || !parse_table(tokens[1], table) || !parse_id(tokens[2], id)) {
+  const auto sp1 = line.find(' ');
+  const std::string command = line.substr(0, sp1);
+
+  if (command == "INSERT") {
+    if (sp1 == std::string::npos) {
       return "ERR invalid arguments\n";
     }
-    return insert(table, id, tokens[3]);
+    const auto sp2 = line.find(' ', sp1 + 1);
+    if (sp2 == std::string::npos) {
+      return "ERR invalid arguments\n";
+    }
+    const auto sp3 = line.find(' ', sp2 + 1);
+    if (sp3 == std::string::npos) {
+      return "ERR invalid arguments\n";
+    }
+
+    const std::string table_token = line.substr(sp1 + 1, sp2 - sp1 - 1);
+    const std::string id_token = line.substr(sp2 + 1, sp3 - sp2 - 1);
+    const std::string name = line.substr(sp3 + 1);
+
+    TableId table{};
+    int id = 0;
+    if (!parse_table(table_token, table) || !parse_id(id_token, id) || name.empty()) {
+      return "ERR invalid arguments\n";
+    }
+    return insert(table, id, name);
   }
 
-  if (tokens[0] == "TRUNCATE") {
+  if (command == "TRUNCATE") {
+    if (sp1 == std::string::npos) {
+      return "ERR invalid arguments\n";
+    }
     TableId table{};
-    if (tokens.size() != 2 || !parse_table(tokens[1], table)) {
+    if (!parse_table(line.substr(sp1 + 1), table)) {
       return "ERR invalid arguments\n";
     }
     return truncate(table);
   }
 
-  if (tokens[0] == "INTERSECTION") {
-    if (tokens.size() != 1) {
+  if (command == "INTERSECTION") {
+    if (sp1 != std::string::npos) {
       return "ERR invalid arguments\n";
     }
     return intersection();
   }
 
-  if (tokens[0] == "SYMMETRIC_DIFFERENCE") {
-    if (tokens.size() != 1) {
+  if (command == "SYMMETRIC_DIFFERENCE") {
+    if (sp1 != std::string::npos) {
       return "ERR invalid arguments\n";
     }
     return symmetric_difference();

@@ -289,3 +289,15 @@ TEST_F(JoinServerFixture, ConcurrentClientsSurviveLargeIntersection) {
   expected += "OK\n";
   EXPECT_EQ(reply, expected);
 }
+
+TEST_F(JoinServerFixture, NameWithSpacesOverNetwork) {
+  boost::asio::io_context io;
+  auto sock = connect(io);
+  EXPECT_EQ(send_command(sock, "INSERT A 42 John Doe"), "OK\n");
+  EXPECT_EQ(send_command(sock, "INSERT B 42 Jane Roe"), "OK\n");
+  EXPECT_EQ(send_command(sock, "INSERT A 43 Solo"), "OK\n");
+  EXPECT_EQ(send_command(sock, "INTERSECTION"), "42,John Doe,Jane Roe\nOK\n");
+  EXPECT_EQ(send_command(sock, "SYMMETRIC_DIFFERENCE"), "43,Solo,\nOK\n");
+  EXPECT_EQ(send_command(sock, "INSERT  A 44 bad"), "ERR invalid arguments\n");
+  EXPECT_EQ(send_command(sock, "INSERT A 44"), "ERR invalid arguments\n");
+}

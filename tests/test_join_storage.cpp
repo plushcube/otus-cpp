@@ -115,8 +115,30 @@ TEST(JoinStorageTest, MalformedCommandsReturnError) {
   EXPECT_EQ(s.execute("INSERT C 1 name"), "ERR invalid arguments\n");
   EXPECT_EQ(s.execute("INSERT A x name"), "ERR invalid arguments\n");
   EXPECT_EQ(s.execute("INSERT A 1"), "ERR invalid arguments\n");
-  EXPECT_EQ(s.execute("INSERT A 1 name extra"), "ERR invalid arguments\n");
   EXPECT_EQ(s.execute("TRUNCATE"), "ERR invalid arguments\n");
   EXPECT_EQ(s.execute("TRUNCATE C"), "ERR invalid arguments\n");
   EXPECT_EQ(s.execute("INTERSECTION extra"), "ERR invalid arguments\n");
+}
+
+TEST(JoinStorageTest, NameMayContainSpaces) {
+  JoinStorage s;
+  EXPECT_EQ(s.execute("INSERT A 7 John Doe"), "OK\n");
+  EXPECT_EQ(s.execute("INSERT B 7 Jane Roe"), "OK\n");
+  EXPECT_EQ(s.execute("INSERT A 8 Single"), "OK\n");
+  EXPECT_EQ(s.execute("INTERSECTION"), "7,John Doe,Jane Roe\nOK\n");
+  EXPECT_EQ(s.execute("SYMMETRIC_DIFFERENCE"), "8,Single,\nOK\n");
+}
+
+TEST(JoinStorageTest, SeparatorIsStrictlyOneSpace) {
+  JoinStorage s;
+  EXPECT_EQ(s.execute("INSERT  A 1 x"), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("INSERT A  1 x"), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("INSERT A 1 "), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("TRUNCATE  A"), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("TRUNCATE A "), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("INTERSECTION "), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("SYMMETRIC_DIFFERENCE extra"), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("INSERT A\t1\tx"), "ERR invalid arguments\n");
+  EXPECT_EQ(s.execute("INSERT\tA\t1\tx"), "ERR unknown command\n");
+  EXPECT_EQ(s.execute("INSERT A 1 x y z"), "OK\n");
 }
