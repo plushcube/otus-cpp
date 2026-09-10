@@ -1,43 +1,21 @@
-#include <boost/asio.hpp>
+#include "utils/utils.h"
 
+#include <boost/asio.hpp>
 #include <iostream>
-#include <stdexcept>
-#include <string>
 
 using namespace boost::asio::ip;
 
-namespace {
-
-unsigned long parse_uint(const std::string &s) {
-  std::size_t pos = 0;
-  const unsigned long v = std::stoul(s, &pos);
-  if (pos != s.size()) {
-    throw std::invalid_argument("not a number: " + s);
-  }
-  return v;
-}
-
-bool is_reply_end(const std::string &line) {
-  return line == "OK" || line.rfind("ERR", 0) == 0;
-}
-
-} // namespace
-
 int main(int argc, char **argv) {
   if (argc != 2) {
-    std::cerr << "Usage: join_client <port>" << std::endl;
+    Utils::print_usage(argv[0]);
     return 1;
   }
 
   unsigned short port = 0;
   try {
-    port = static_cast<unsigned short>(parse_uint(argv[1]));
+    port = Utils::parse_port(argv[1]);
   } catch (const std::exception &) {
-    std::cerr << "Usage: join_client <port>" << std::endl;
-    return 1;
-  }
-  if (port == 0) {
-    std::cerr << "Usage: join_client <port>" << std::endl;
+    Utils::print_usage(argv[0]);
     return 1;
   }
 
@@ -64,7 +42,7 @@ int main(int argc, char **argv) {
           line.pop_back();
         }
         std::cout << line << '\n';
-        if (is_reply_end(line)) {
+        if (Utils::is_reply_end(line)) {
           break;
         }
       }

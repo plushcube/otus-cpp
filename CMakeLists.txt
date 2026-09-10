@@ -41,10 +41,10 @@ endif()
 
 add_subdirectory(libjoin)
 
-add_executable(${TASK_SERVER} "src/join_server.cpp")
+add_executable(${TASK_SERVER} "src/join_server.cpp" "src/utils/utils.cpp")
 target_link_libraries(${TASK_SERVER} PRIVATE join::join)
 
-add_executable(${TASK_CLIENT} "src/join_client.cpp")
+add_executable(${TASK_CLIENT} "src/join_client.cpp" "src/utils/utils.cpp")
 target_link_libraries(${TASK_CLIENT} PRIVATE join::join)
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
@@ -70,19 +70,21 @@ include(CPack)
 
 if(WITH_TESTS)
   add_executable(${TASK_TEST_STORAGE} "tests/test_join_storage.cpp")
-  target_link_libraries(${TASK_TEST_STORAGE} PRIVATE GTest::gtest_main join::join)
+  target_link_libraries(${TASK_TEST_STORAGE} PRIVATE GTest::gtest_main
+                                                     join::join)
 
   add_executable(${TASK_TEST_SERVER} "tests/test_join_server.cpp")
-  target_link_libraries(${TASK_TEST_SERVER} PRIVATE GTest::gtest_main join::join)
+  target_link_libraries(${TASK_TEST_SERVER} PRIVATE GTest::gtest_main
+                                                    join::join)
 
   if(MSVC)
     target_compile_options(${TASK_TEST_STORAGE} PRIVATE /W4)
     target_compile_options(${TASK_TEST_SERVER} PRIVATE /W4)
   else()
     target_compile_options(${TASK_TEST_STORAGE} PRIVATE -Wall -Wextra -pedantic
-                                                     -Werror)
+                                                        -Werror)
     target_compile_options(${TASK_TEST_SERVER} PRIVATE -Wall -Wextra -pedantic
-                                                    -Werror)
+                                                       -Werror)
   endif()
 
   include(GoogleTest)

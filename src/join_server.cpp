@@ -1,41 +1,23 @@
 #include "join_server.h"
+#include "utils/utils.h"
 
 #include <boost/asio/signal_set.hpp>
 
 #include <csignal>
 #include <iostream>
-#include <stdexcept>
 #include <string>
-
-namespace {
-
-unsigned long parse_uint(const std::string &s) {
-  std::size_t pos = 0;
-  const unsigned long v = std::stoul(s, &pos);
-  if (pos != s.size()) {
-    throw std::invalid_argument("not a number: " + s);
-  }
-  return v;
-}
-
-} // namespace
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    std::cerr << "Usage: join_server <port>" << std::endl;
+    Utils::print_usage(argv[0]);
     return 1;
   }
 
   unsigned short port = 0;
   try {
-    port = static_cast<unsigned short>(parse_uint(argv[1]));
+    port = Utils::parse_port(argv[1]);
   } catch (const std::exception &) {
-    std::cerr << "Usage: join_server <port>" << std::endl;
-    return 1;
-  }
-
-  if (port == 0) {
-    std::cerr << "Usage: join_server <port>" << std::endl;
+    Utils::print_usage(argv[0]);
     return 1;
   }
 
