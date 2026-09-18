@@ -4,4 +4,5 @@
 .cache
 compile_commands.json
 docs/
+/output
 *.log
