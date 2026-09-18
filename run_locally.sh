@@ -8,10 +8,14 @@ INPUT_HOME=${INPUT_HOME:-${SCRIPT_DIR}/input}
 INPUT=${INPUT_HOME}/AB_NYC_2019.csv
 OUTPUT=${OUTPUT:-${SCRIPT_DIR}/output}
 
-if [ ! -x "${BINARY_HOME}/mapper" ] || [ ! -x "${BINARY_HOME}/reducer" ]; then
-    echo "mapper/reducer not found in ${BINARY_HOME}, build them first: ./self_check.sh" >&2
-    exit 1
-fi
+for binary in mapper reducer_mean reducer_variance; do
+    if [ ! -x "${BINARY_HOME}/${binary}" ]; then
+        echo "${binary} not found in ${BINARY_HOME}, build it first: ./self_check.sh" >&2
+        exit 1
+    fi
+done
 
-cat "${INPUT}" | "${BINARY_HOME}/mapper" | sort -k1 | "${BINARY_HOME}/reducer" > "${OUTPUT}"
-cat "${OUTPUT}"
+cat "${INPUT}" | "${BINARY_HOME}/mapper" | sort -k1 > "${OUTPUT}"
+
+printf 'mean price: %s\n' "$("${BINARY_HOME}/reducer_mean" < "${OUTPUT}")"
+printf 'price variance: %s\n' "$("${BINARY_HOME}/reducer_variance" < "${OUTPUT}")"
