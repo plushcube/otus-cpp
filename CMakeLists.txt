@@ -21,13 +21,25 @@ add_subdirectory(libmlp)
 
 set(TASK_CLI "fashio_mnist")
 
-add_executable(${TASK_CLI} "src/main.cpp")
+add_executable(${TASK_CLI} "src/main.cpp" "src/arg_parser.cpp" "src/runners/mlp_runner.cpp")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in"
                "${PROJECT_BINARY_DIR}/version.h")
 
 target_link_libraries(${TASK_CLI} PRIVATE mnist::mlp)
-target_include_directories(${TASK_CLI} PRIVATE "${PROJECT_BINARY_DIR}")
+target_include_directories(${TASK_CLI} PRIVATE "${PROJECT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+# Веса модели ищутся рядом с исполняемым файлом — кладём их туда при сборке
+# и установке, чтобы бинарник был самодостаточным и не зависел от CWD.
+set(MODEL_WEIGHTS
+    "${CMAKE_CURRENT_SOURCE_DIR}/input/w1.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/input/w2.txt")
+
+add_custom_command(
+  TARGET ${TASK_CLI}
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MODEL_WEIGHTS} "$<TARGET_FILE_DIR:${TASK_CLI}>"
+  COMMENT "Копирую веса модели рядом с ${TASK_CLI}")
 
 if(MSVC)
   target_compile_options(${TASK_CLI} PRIVATE /W4)
@@ -36,6 +48,7 @@ else()
 endif()
 
 install(TARGETS ${TASK_CLI} RUNTIME DESTINATION bin)
+install(FILES ${MODEL_WEIGHTS} DESTINATION bin)
 
 option(WITH_TESTS "Whether to build tests" ON)
 
@@ -59,21 +72,39 @@ if(WITH_TESTS)
 
   set(TEST_TASK "test_mlp")
 
-  add_executable(${TEST_TASK} "tests/test_mlp.cpp")
+  add_executable(${TEST_TASK} "tests/test_mlp.cpp" "tests/helpers.cpp")
 
-  # target_compile_definitions(
-  #   ${TASK_TEST_PIPELINE}
-  #   PRIVATE MR_DATASET_PATH="${PROJECT_SOURCE_DIR}/input/AB_NYC_2019.csv")
+  target_include_directories(${TEST_TASK} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 
-    target_link_libraries(${TEST_TASK} PRIVATE GTest::gtest_main mnist::mlp)
+  target_link_libraries(${TEST_TASK} PRIVATE GTest::gtest_main mnist::mlp)
 
-    if(MSVC)
-      target_compile_options(${TEST_TASK} PRIVATE /W4)
-    else()
-      target_compile_options(${TEST_TASK} PRIVATE -Wall -Wextra -pedantic -Werror)
-    endif()
+  # Тесты открывают данные относительными путями вида "train/w1.txt", поэтому
+  # запускаем их с рабочим каталогом рядом с бинарником и кладём данные туда же —
+  # та же схема, что и у весов модели в fashio_mnist.
+  #
+  # Веса и эталонные вероятности — согласованный набор: probas в test_mnist_mlp.txt
+  # посчитаны именно на tests/data/train/w*.txt (они отличаются от input/w*.txt,
+  # которые использует fashio_mnist). Менять их по отдельности нельзя.
+  set(TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests/data/train")
 
-    gtest_discover_tests(${TEST_TASK})
+  if(NOT EXISTS "${TEST_DATA_DIR}")
+    message(FATAL_ERROR "TEST_DATA_DIR не найден: ${TEST_DATA_DIR} — тесты не смогут прочитать train/…")
+  endif()
+
+  add_custom_command(
+    TARGET ${TEST_TASK}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${TEST_DATA_DIR}"
+            "$<TARGET_FILE_DIR:${TEST_TASK}>/train"
+    COMMENT "Копирую данные для тестов рядом с ${TEST_TASK}")
+
+  if(MSVC)
+    target_compile_options(${TEST_TASK} PRIVATE /W4)
+  else()
+    target_compile_options(${TEST_TASK} PRIVATE -Wall -Wextra -pedantic -Werror)
+  endif()
+
+  gtest_discover_tests(${TEST_TASK} WORKING_DIRECTORY "$<TARGET_FILE_DIR:${TEST_TASK}>")
 endif()
 
 set(CPACK_GENERATOR DEB)
